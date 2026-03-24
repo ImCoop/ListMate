@@ -6,9 +6,31 @@ import { useEffect, useState } from "react";
 
 import { getAutomationNetworkErrorMessage, readAutomationBaseUrl } from "@/lib/automation";
 import { createId, db, hasInstantConfig } from "@/lib/instant";
-import type { Listing, ListingInput, ListingStatus, PoshmarkTopCategory } from "@/lib/types";
+import type {
+  Listing,
+  ListingInput,
+  ListingStatus,
+  MarketplaceListingState,
+  MarketplacePlatform,
+  PoshmarkTopCategory,
+} from "@/lib/types";
 
 const POSHMARK_TOP_CATEGORIES: PoshmarkTopCategory[] = ["Women", "Men", "Kids", "Home", "Pets", "Electronics"];
+const PLATFORM_LABEL: Record<MarketplacePlatform, string> = {
+  poshmark: "Poshmark",
+  depop: "Depop",
+  ebay: "eBay",
+};
+const PLATFORM_URL_KEY: Record<MarketplacePlatform, "poshmarkUrl" | "depopUrl" | "ebayUrl"> = {
+  poshmark: "poshmarkUrl",
+  depop: "depopUrl",
+  ebay: "ebayUrl",
+};
+const PLATFORM_STATE_KEY: Record<MarketplacePlatform, "poshmarkState" | "depopState" | "ebayState"> = {
+  poshmark: "poshmarkState",
+  depop: "depopState",
+  ebay: "ebayState",
+};
 
 const emptyForm = {
   title: "",
@@ -39,6 +61,22 @@ function statusTone(status: ListingStatus) {
   }
 
   return "bg-clay/15 text-clay";
+}
+
+function marketplaceStateTone(state: MarketplaceListingState | undefined) {
+  if (state === "sold") {
+    return "bg-rose/15 text-rose";
+  }
+
+  if (state === "remove_pending") {
+    return "bg-amber-100 text-amber-700";
+  }
+
+  if (state === "removed") {
+    return "bg-slate-200 text-slate-600";
+  }
+
+  return "bg-pine/15 text-pine";
 }
 
 function SetupEmptyState() {
@@ -72,6 +110,18 @@ function EmptyListings() {
       <h2 className="mt-2 text-2xl font-semibold text-ink">Create one listing and reuse it everywhere.</h2>
       <p className="mt-3 text-sm leading-6 text-ink/70">
         Keep titles, pricing, and photos in one place, then copy platform-ready versions in a tap.
+      </p>
+    </div>
+  );
+}
+
+function NoVisibleListings() {
+  return (
+    <div className="rounded-[2rem] border border-dashed border-clay/30 bg-white/70 p-8 text-center shadow-card">
+      <p className="text-sm font-medium uppercase tracking-[0.25em] text-clay">No active listings</p>
+      <h2 className="mt-2 text-2xl font-semibold text-ink">Sold items are hidden right now.</h2>
+      <p className="mt-3 text-sm leading-6 text-ink/70">
+        Turn on <span className="font-semibold">Show Sold Listings</span> at the bottom to view everything.
       </p>
     </div>
   );
@@ -397,7 +447,7 @@ function StatusControl({
   );
 }
 
-type AutomationPlatform = "poshmark" | "depop" | "ebay";
+type AutomationPlatform = MarketplacePlatform;
 
 function ListingCard({
   listing,
@@ -412,6 +462,8 @@ function ListingCard({
   onDelete: (listingId: string) => Promise<void>;
   isDeleting: boolean;
 }) {
+  const listingIdLabel = listing.id.slice(0, 8).toUpperCase();
+
   return (
     <article className="rounded-[2rem] border border-white/70 bg-white/90 p-5 shadow-card backdrop-blur">
       {listing.imageUrls[0] ? (
@@ -428,6 +480,7 @@ function ListingCard({
           <p className="text-xs font-medium uppercase tracking-[0.25em] text-clay">
             {listing.topCategory || listing.category || "Listing"}
           </p>
+          <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-ink/45">ID {listingIdLabel}</p>
           <h2 className="mt-2 text-xl font-semibold leading-tight text-ink">{listing.title}</h2>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white">
@@ -453,6 +506,56 @@ function ListingCard({
           {listing.imageUrls.length > 0 ? (
             <span className="rounded-full bg-sand px-3 py-1.5">{listing.imageUrls.length} images</span>
           ) : null}
+        </div>
+      )}
+
+      {(listing.poshmarkUrl || listing.depopUrl || listing.ebayUrl) && (
+        <div className="mt-4 rounded-[1rem] border border-ink/10 bg-sand/50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/55">Marketplace Links</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(["poshmark", "depop", "ebay"] as const).map((platform) => {
+              const url = listing[PLATFORM_URL_KEY[platform]];
+              const state = listing[PLATFORM_STATE_KEY[platform]];
+
+              if (!url) {
+                return null;
+              }
+
+              return (
+                <a
+                  key={`${listing.id}-${platform}`}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink"
+                >
+                  {PLATFORM_LABEL[platform]}
+                  {state ? ` (${state.replace("_", " ")})` : ""}
+                </a>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(["poshmark", "depop", "ebay"] as const).map((platform) => {
+              const state = listing[PLATFORM_STATE_KEY[platform]];
+
+              if (!state) {
+                return null;
+              }
+
+              return (
+                <span
+                  key={`${listing.id}-${platform}-state`}
+                  className={clsx(
+                    "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                    marketplaceStateTone(state),
+                  )}
+                >
+                  {PLATFORM_LABEL[platform]}: {state.replace("_", " ")}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -495,9 +598,11 @@ function ConnectedDashboard() {
   const [sendingMap, setSendingMap] = useState<Record<string, AutomationPlatform | null>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [automationBaseUrl, setAutomationBaseUrl] = useState(readAutomationBaseUrl);
+  const [showSoldListings, setShowSoldListings] = useState(false);
 
   const { isLoading, error, data } = db!.useQuery({ listings: {} });
   const listings = sortListings((data?.listings as Listing[] | undefined) ?? []);
+  const visibleListings = listings.filter((listing) => showSoldListings || listing.status !== "sold");
 
   useEffect(() => {
     if (!toast) {
@@ -569,11 +674,30 @@ function ConnectedDashboard() {
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+        listingId?: string;
+        listingUrl?: string;
+      } | null;
 
       if (!response.ok) {
         throw new Error(payload?.error || `Automation failed with ${response.status}`);
       }
+
+      const urlKey = PLATFORM_URL_KEY[platform];
+      const stateKey = PLATFORM_STATE_KEY[platform];
+      const updates: Partial<Listing> = {
+        [stateKey]: "active",
+      };
+
+      if (payload?.listingUrl) {
+        updates[urlKey] = payload.listingUrl;
+      } else if (platform === "ebay" && payload?.listingId) {
+        updates.ebayUrl = `https://www.ebay.com/itm/${payload.listingId}`;
+      }
+
+      await db!.transact(db!.tx.listings[listing.id].update(updates));
 
       if (listing.status === "draft") {
         await updateStatus(listing.id, "listed");
@@ -628,9 +752,10 @@ function ConnectedDashboard() {
         ) : null}
 
         {isLoading ? <LoadingState /> : listings.length > 0 ? null : <EmptyListings />}
+        {!isLoading && listings.length > 0 && visibleListings.length === 0 ? <NoVisibleListings /> : null}
 
         {!isLoading &&
-          listings.map((listing) => (
+          visibleListings.map((listing) => (
             <ListingCard
               key={listing.id}
               listing={listing}
@@ -650,10 +775,24 @@ function ConnectedDashboard() {
       <button
         type="button"
         onClick={() => setIsSheetOpen(true)}
-        className="fixed bottom-5 left-1/2 z-20 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-[1.4rem] bg-ink px-5 py-4 text-base font-semibold text-white shadow-2xl shadow-ink/20"
+        className="fixed bottom-20 left-1/2 z-20 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-[1.4rem] bg-ink px-5 py-4 text-base font-semibold text-white shadow-2xl shadow-ink/20"
       >
         New Listing
       </button>
+
+      <label
+        htmlFor="show-sold-listings"
+        className="fixed bottom-5 left-1/2 z-20 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center justify-between rounded-[1.1rem] border border-ink/10 bg-white/95 px-4 py-3 text-sm font-medium text-ink shadow-card"
+      >
+        <span>Show Sold Listings</span>
+        <input
+          id="show-sold-listings"
+          type="checkbox"
+          checked={showSoldListings}
+          onChange={(event) => setShowSoldListings(event.target.checked)}
+          className="h-4 w-4 accent-ink"
+        />
+      </label>
 
       <NewListingSheet
         isOpen={isSheetOpen}
@@ -663,7 +802,7 @@ function ConnectedDashboard() {
       />
 
       {toast ? (
-        <div className="fixed inset-x-0 bottom-24 z-20 mx-auto w-fit rounded-full bg-ink px-4 py-3 text-sm font-medium text-white shadow-lg">
+        <div className="fixed inset-x-0 bottom-36 z-20 mx-auto w-fit rounded-full bg-ink px-4 py-3 text-sm font-medium text-white shadow-lg">
           {toast}
         </div>
       ) : null}

@@ -315,12 +315,14 @@ export async function automatePoshmark(payload) {
     await page.getByRole("button", { name: /list this item/i }).click();
 	
 	await page.waitForTimeout(10000);
+    const listingUrl = page.url();
 
     logStep("poshmark", "Listing submitted.");
 
     return {
       ok: true,
       message: "Poshmark listing submitted.",
+      listingUrl,
     };
   } finally {
     await cleanupTempDir(tempDir);

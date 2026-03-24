@@ -1,74 +1,41 @@
 # Resale Listing Tool
 
-Lean, mobile-first Next.js app for creating a product listing once, then copying platform-ready versions for resale marketplaces.
+Mobile-first listing manager built with Next.js. Create one listing, then send it to marketplace automation flows for Poshmark, Depop, and eBay.
 
-## Stack
+## What It Does
 
-- Next.js App Router
-- TypeScript
+- Create and save listings in InstantDB
+- Generate a unique ID for each listing
+- Mark listings as `draft`, `listed`, or `sold`
+- Hide sold listings from the home feed by default
+- Show sold listings with the bottom toggle: `Show Sold Listings`
+- Launch local automation requests for Poshmark, Depop, and eBay
+
+## Tech Stack
+
+- Next.js (App Router)
+- React + TypeScript
 - Tailwind CSS
 - InstantDB
-- Vercel-ready
+- Node.js automation service (Playwright + eBay APIs)
 
-## Features
+## Project Structure
 
-- Create a listing with title, description, price, quantity, photos, brand, size, and category
-- Mobile-first dashboard with thumb-friendly cards and actions
-- One-tap copy for:
-  - Poshmark
-  - Depop
-  - Generic listing text
-- Quick open links for:
-  - Poshmark create listing
-  - Depop sell page
-- Status management:
-  - Draft
-  - Listed
-  - Sold
-- Permanent delete for saved listings
-- Sticky `New Listing` button
-- Clipboard toast feedback
-- Direct camera capture or image upload with preview thumbnails
-- Local Playwright automation buttons for Poshmark and Depop
-- eBay listing creation through the official eBay APIs
-- Depop magic-link session bootstrap from the main app
-- Dedicated settings/admin page for automation service setup and manual marketplace login
-
-## InstantDB setup
-
-1. Create an app in InstantDB.
-2. Copy your app ID.
-3. Create `.env.local` from `.env.example`.
-4. Set:
-
-```bash
-NEXT_PUBLIC_INSTANT_APP_ID=your-instant-app-id
-NEXT_PUBLIC_AUTOMATION_BASE_URL=http://localhost:3001
+```text
+app/                  # Next.js routes
+components/           # UI components (home dashboard, settings UI)
+lib/                  # Shared types and helpers
+automation-service/   # Local automation API for marketplaces
+monitoring-service/   # Sale monitoring and cross-platform removal queue
 ```
 
-For eBay API listing creation, also configure these values for the automation service in `automation-service/.env`, `automation-service/.env.local`, or your shell environment:
+## Prerequisites
 
-```bash
-EBAY_CLIENT_ID=your-ebay-client-id
-EBAY_CLIENT_SECRET=your-ebay-client-secret
-EBAY_RUNAME=your-ebay-runame
-EBAY_MARKETPLACE_ID=EBAY_US
-```
+- Node.js 20+
+- npm 10+
+- InstantDB account/app ID
 
-This app uses a `listings` collection with the following fields stored per record:
-
-- `title`
-- `description`
-- `price`
-- `quantity`
-- `imageUrls`
-- `brand`
-- `size`
-- `category`
-- `status`
-- `createdAt`
-
-## Run locally
+## 1) App Setup (Frontend)
 
 1. Install dependencies:
 
@@ -76,15 +43,28 @@ This app uses a `listings` collection with the following fields stored per recor
 npm install
 ```
 
-2. Start the dev server:
+2. Create your local environment file:
+
+```bash
+copy .env.example .env.local
+```
+
+3. Update `/.env.local` values:
+
+```bash
+NEXT_PUBLIC_INSTANT_APP_ID=your-instant-app-id
+NEXT_PUBLIC_AUTOMATION_BASE_URL=http://localhost:3001
+```
+
+4. Start the app:
 
 ```bash
 npm run dev
 ```
 
-3. Open `http://localhost:3000`
+5. Open `http://localhost:3000`
 
-## Run the automation service
+## 2) Automation Service Setup
 
 1. Install service dependencies:
 
@@ -94,44 +74,115 @@ npm install
 npm run install:browser
 ```
 
-2. Start the local automation server:
+2. Create service env file (optional but recommended):
+
+```bash
+copy .env.example .env.local
+```
+
+3. Add eBay credentials (required for eBay API listing):
+
+```bash
+EBAY_CLIENT_ID=your-ebay-client-id
+EBAY_CLIENT_SECRET=your-ebay-client-secret
+EBAY_RUNAME=your-ebay-runame
+EBAY_MARKETPLACE_ID=EBAY_US
+```
+
+4. Start the automation API:
 
 ```bash
 npm run start
 ```
 
-3. Use `Send to Poshmark`, `Send to Depop`, or `Send to eBay` from the listing card.
-4. Use `/settings` in the web app to:
-   - set the automation service URL
-   - run a health check
-   - open manual Poshmark or Depop login flows
-   - connect eBay API access
-   - paste a Depop magic link
-5. After marketplace setup:
-   - Playwright sessions are saved in `automation-service/storageState.json`
-   - eBay OAuth tokens are saved in `automation-service/ebay-tokens.json`
+Service default URL: `http://localhost:3001`
 
-If you open the web app from another device, set `NEXT_PUBLIC_AUTOMATION_BASE_URL` to the desktop running the automation service, for example `http://192.168.1.25:3001`.
+## 3) Monitoring Service Setup
 
-## Deploy to Vercel
+1. Install monitoring service dependencies:
 
-1. Push this project to GitHub.
-2. Import the repo into Vercel.
-3. Add the environment variable below in Vercel project settings:
+```bash
+cd monitoring-service
+npm install
+```
+
+2. Configure environment:
+
+```bash
+copy .env.example .env.local
+```
+
+3. Start monitoring service:
+
+```bash
+npm run start
+```
+
+Monitoring service default URL: `http://localhost:3010`
+
+## 4) First-Run Configuration
+
+1. Open the web app.
+2. Go to `/settings`.
+3. Confirm the automation base URL.
+4. Run health check.
+5. Complete manual marketplace login/bootstrap steps as needed.
+
+## Listing IDs and Sold Visibility
+
+- Every listing is stored with a unique ID (`id`).
+- The home cards show a short display form of that ID for quick reference.
+- Sold listings are hidden on the home page by default.
+- Enable `Show Sold Listings` at the bottom of the screen to include sold items in the feed.
+
+## Marketplace URL Tracking
+
+- Each listing can store per-platform addresses:
+  - `poshmarkUrl`
+  - `depopUrl`
+  - `ebayUrl`
+- Platform listing state is tracked with:
+  - `poshmarkState`
+  - `depopState`
+  - `ebayState`
+- The separate monitoring service ingests `sale-detected` events and queues cross-platform removal jobs.
+- Queue worker retries failed removals with backoff and persists queue state on disk.
+
+## Scripts
+
+Frontend (`/`):
+
+- `npm run dev` - start development server
+- `npm run build` - production build
+- `npm run start` - run production build
+- `npm run lint` - run ESLint
+- `npm run typecheck` - run TypeScript checks
+
+Automation (`/automation-service`):
+
+- `npm run start` - start local automation server
+- `npm run install:browser` - install Playwright browser dependencies
+
+Monitoring (`/monitoring-service`):
+
+- `npm run start` - start monitoring queue worker/API
+- `npm run dev` - run with Node watch mode
+
+## Deployment (Vercel)
+
+1. Push this repository to GitHub.
+2. Import into Vercel.
+3. Add required frontend env vars in Vercel:
 
 ```bash
 NEXT_PUBLIC_INSTANT_APP_ID=your-instant-app-id
-NEXT_PUBLIC_AUTOMATION_BASE_URL=http://localhost:3001
+NEXT_PUBLIC_AUTOMATION_BASE_URL=https://your-automation-host
 ```
 
 4. Deploy.
 
 ## Notes
 
-- Opening Poshmark or Depop automatically moves a draft listing to `listed`.
-- Copy actions format text specifically for each marketplace and write directly to the clipboard.
-- Photos are captured or uploaded in the form and stored in `imageUrls` after client-side resizing.
-- Poshmark and Depop automation open the marketplace page, fill fields and images, then stop before final submission.
-- eBay listing creation uses OAuth plus the official Inventory/Account/Taxonomy APIs and uploads images to eBay Picture Services before publishing.
-- Poshmark automation explicitly confirms the photo upload step before field entry.
-- There is no authentication in the main app.
+- This repo has no built-in auth layer for the frontend dashboard.
+- Keep secrets out of Git; use `.env.local` / deployment environment variables.
+- For phone testing, point `NEXT_PUBLIC_AUTOMATION_BASE_URL` to your desktop LAN IP.

@@ -337,10 +337,12 @@ export async function automateDepop(payload) {
     await page.getByRole("button", { name: /^post$/i }).click({ delay: 80 });
 	
 	await page.waitForTimeout(5000);
+    const listingUrl = page.url();
 
     return {
       ok: true,
       message: "Depop listing submitted.",
+      listingUrl,
     };
   } finally {
     await cleanupTempDir(tempDir);

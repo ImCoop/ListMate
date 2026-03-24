@@ -518,12 +518,16 @@ export async function automateEbay(payload) {
   });
 
   logStep("ebay", "Listing submitted through the eBay APIs.");
+  const listingId = publishResult?.listingId ? String(publishResult.listingId) : undefined;
+  const listingUrl = listingId ? `https://www.ebay.com/itm/${listingId}` : undefined;
 
   return {
     ok: true,
-    message: publishResult?.listingId
-      ? `eBay listing submitted. Listing ID: ${publishResult.listingId}`
+    message: listingId
+      ? `eBay listing submitted. Listing ID: ${listingId}`
       : "eBay listing submitted.",
+    listingId,
+    listingUrl,
   };
 }
 
