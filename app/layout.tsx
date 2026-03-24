@@ -15,8 +15,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resale Listing Tool",
-  description: "Create a listing once and copy marketplace-ready versions fast.",
+  title: "ListMate",
+  description: "Create listings once and sync marketplace-ready versions fast.",
 };
 
 export default function RootLayout({

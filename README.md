@@ -1,10 +1,12 @@
-# Resale Listing Tool
+# ListMate
 
 Mobile-first listing manager built with Next.js. Create one listing, then send it to marketplace automation flows for Poshmark, Depop, and eBay.
 
 ## What It Does
 
 - Create and save listings in InstantDB
+- Enforce server-side login with secure session cookies
+- Manage users in InstantDB with admin-only controls in Settings
 - Generate a unique ID for each listing
 - Mark listings as `draft`, `listed`, or `sold`
 - Hide sold listings from the home feed by default
@@ -53,6 +55,11 @@ copy .env.example .env.local
 
 ```bash
 NEXT_PUBLIC_INSTANT_APP_ID=your-instant-app-id
+INSTANT_APP_ID=your-instant-app-id
+INSTANT_APP_ADMIN_TOKEN=your-instant-admin-token
+LISTMATE_SESSION_SECRET=your-long-random-secret-min-32-chars
+LISTMATE_DEFAULT_ADMIN_USERNAME=admin
+LISTMATE_DEFAULT_ADMIN_PASSWORD=admin1234!
 NEXT_PUBLIC_AUTOMATION_BASE_URL=http://localhost:3001
 ```
 
@@ -123,10 +130,12 @@ Monitoring service default URL: `http://localhost:3010`
 ## 4) First-Run Configuration
 
 1. Open the web app.
-2. Go to `/settings`.
-3. Confirm the automation base URL.
-4. Run health check.
-5. Complete manual marketplace login/bootstrap steps as needed.
+2. Sign in on `/login` using the default admin username/password from env.
+3. Go to `/settings`.
+4. In **User management** (admin-only), create normal users/admins.
+5. Confirm the automation base URL.
+6. Run health check.
+7. Complete manual marketplace login/bootstrap steps as needed.
 
 ## Listing IDs and Sold Visibility
 
@@ -176,6 +185,9 @@ Monitoring (`/monitoring-service`):
 
 ```bash
 NEXT_PUBLIC_INSTANT_APP_ID=your-instant-app-id
+INSTANT_APP_ID=your-instant-app-id
+INSTANT_APP_ADMIN_TOKEN=your-instant-admin-token
+LISTMATE_SESSION_SECRET=your-long-random-secret-min-32-chars
 NEXT_PUBLIC_AUTOMATION_BASE_URL=https://your-automation-host
 ```
 
@@ -183,6 +195,8 @@ NEXT_PUBLIC_AUTOMATION_BASE_URL=https://your-automation-host
 
 ## Notes
 
-- This repo has no built-in auth layer for the frontend dashboard.
+- App auth is server-enforced using signed, HTTP-only session cookies.
+- `INSTANT_APP_ADMIN_TOKEN` is required for server user management.
+- Rotate the default admin password immediately after first login.
 - Keep secrets out of Git; use `.env.local` / deployment environment variables.
 - For phone testing, point `NEXT_PUBLIC_AUTOMATION_BASE_URL` to your desktop LAN IP.

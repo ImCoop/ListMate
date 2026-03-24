@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { LogoutButton } from "@/components/logout-button";
 import {
   getAutomationNetworkErrorMessage,
   getDefaultAutomationBaseUrl,
@@ -10,6 +11,7 @@ import {
   readAutomationBaseUrl,
   writeAutomationBaseUrl,
 } from "@/lib/automation";
+import type { AppRole, SessionUser } from "@/lib/auth-types";
 
 type HealthState = {
   ok: boolean;
@@ -25,7 +27,15 @@ type EbayStatus = {
   accessTokenExpiresAt: number | null;
 } | null;
 
-export function SettingsApp() {
+type UserListItem = {
+  id: string;
+  username: string;
+  role: AppRole;
+  disabled: boolean;
+  createdAt: number;
+};
+
+export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
   const [automationBaseUrl, setAutomationBaseUrl] = useState(readAutomationBaseUrl);
   const [draftBaseUrl, setDraftBaseUrl] = useState(readAutomationBaseUrl);
   const [health, setHealth] = useState<HealthState>(null);
@@ -33,6 +43,11 @@ export function SettingsApp() {
   const [toast, setToast] = useState<string | null>(null);
   const [depopMagicLink, setDepopMagicLink] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<AppRole>("user");
 
   useEffect(() => {
     const current = readAutomationBaseUrl();
@@ -85,6 +100,34 @@ export function SettingsApp() {
 
     void loadEbayStatus();
   }, [callAutomation]);
+
+  useEffect(() => {
+    if (sessionUser.role !== "admin") {
+      return;
+    }
+
+    async function loadUsers() {
+      setBusyAction("load-users");
+      setUsersError(null);
+
+      try {
+        const response = await fetch("/api/users");
+        const payload = (await response.json().catch(() => null)) as { users?: UserListItem[]; error?: string } | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Could not load users.");
+        }
+
+        setUsers(payload?.users || []);
+      } catch (error) {
+        setUsersError(error instanceof Error ? error.message : "Could not load users.");
+      } finally {
+        setBusyAction(null);
+      }
+    }
+
+    void loadUsers();
+  }, [sessionUser.role]);
 
   async function checkHealth() {
     setBusyAction("health");
@@ -175,27 +218,240 @@ export function SettingsApp() {
     }
   }
 
+  async function createUser() {
+    const username = newUsername.trim();
+    const password = newPassword;
+
+    if (!username || !password) {
+      setToast("Username and password are required.");
+      return;
+    }
+
+    setBusyAction("create-user");
+
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          password,
+          role: newRole,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        user?: UserListItem;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Could not create user.");
+      }
+
+      const createdUser = payload?.user;
+
+      if (createdUser) {
+        setUsers((current) => [createdUser, ...current]);
+      }
+
+      setNewUsername("");
+      setNewPassword("");
+      setNewRole("user");
+      setToast("User created");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not create user.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function disableUser(userId: string) {
+    setBusyAction(`disable-user:${userId}`);
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        user?: UserListItem;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Could not disable user.");
+      }
+
+      setUsers((current) =>
+        current.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                disabled: true,
+              }
+            : user,
+        ),
+      );
+      setToast("User disabled");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not disable user.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function deleteUser(userId: string) {
+    const confirmed = window.confirm("Delete this user permanently?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyAction(`delete-user:${userId}`);
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "DELETE",
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Could not delete user.");
+      }
+
+      setUsers((current) => current.filter((user) => user.id !== userId));
+      setToast("User deleted");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not delete user.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-3xl px-4 pb-20 pt-6 sm:px-6">
       <section className="rounded-[2.2rem] border border-white/80 bg-white/60 p-5 shadow-card backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.32em] text-clay">Settings</p>
-            <h1 className="mt-3 text-4xl font-semibold leading-tight text-ink">Automation admin.</h1>
+            <h1 className="mt-3 text-4xl font-semibold leading-tight text-ink">ListMate settings.</h1>
           </div>
-          <Link
-            href="/"
-            className="rounded-full border border-ink/10 bg-white/85 px-4 py-2 text-sm font-semibold text-ink"
-          >
-            Back
-          </Link>
+          <div className="flex flex-col items-end gap-2">
+            <p className="rounded-full bg-sand px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-ink/70">
+              {sessionUser.username} ({sessionUser.role})
+            </p>
+            <div className="flex gap-2">
+              <Link
+                href="/"
+                className="rounded-full border border-ink/10 bg-white/85 px-4 py-2 text-sm font-semibold text-ink"
+              >
+                Back
+              </Link>
+              <LogoutButton className="rounded-full border border-ink/10 bg-white/85 px-4 py-2 text-sm font-semibold text-ink" />
+            </div>
+          </div>
         </div>
         <p className="mt-3 text-sm leading-6 text-ink/70">
-          Keep service setup, manual login, and session bootstrap here so listing cards stay focused on posting.
+          Keep service setup, manual login, and session bootstrap here so ListMate listing cards stay focused on posting.
         </p>
       </section>
 
       <section className="mt-5 space-y-4">
+        {sessionUser.role === "admin" ? (
+          <div className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-card">
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-clay">User management</p>
+            <h2 className="mt-2 text-xl font-semibold text-ink">Admin-only access control</h2>
+            <p className="mt-2 text-sm leading-6 text-ink/70">
+              Add ListMate users and assign roles. This section is hidden from non-admin users.
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <input
+                value={newUsername}
+                onChange={(event) => setNewUsername(event.target.value)}
+                placeholder="new username"
+                className="min-w-0 rounded-[1.2rem] border border-ink/10 bg-white px-4 py-4 text-sm text-ink outline-none transition focus:border-clay"
+              />
+              <input
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                placeholder="password (min 8 chars)"
+                className="min-w-0 rounded-[1.2rem] border border-ink/10 bg-white px-4 py-4 text-sm text-ink outline-none transition focus:border-clay"
+              />
+              <select
+                value={newRole}
+                onChange={(event) => setNewRole(event.target.value as AppRole)}
+                className="min-w-0 rounded-[1.2rem] border border-ink/10 bg-white px-4 py-4 text-sm text-ink outline-none transition focus:border-clay"
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={createUser}
+              disabled={busyAction === "create-user"}
+              className="mt-3 rounded-[1.2rem] bg-ink px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-ink/40"
+            >
+              {busyAction === "create-user" ? "Creating..." : "Create User"}
+            </button>
+
+            {usersError ? <p className="mt-3 text-sm text-rose">{usersError}</p> : null}
+
+            <div className="mt-4 space-y-2">
+              {users.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between rounded-[1rem] border border-ink/10 bg-sand/40 px-3 py-2 text-sm text-ink/80"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-ink">
+                      {user.username}
+                      {user.id === sessionUser.id ? " (you)" : ""}
+                    </p>
+                    <p className="text-xs uppercase tracking-[0.1em] text-ink/60">
+                      {user.role}
+                      {user.disabled ? " • disabled" : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => disableUser(user.id)}
+                      disabled={
+                        user.disabled ||
+                        user.id === sessionUser.id ||
+                        busyAction === `disable-user:${user.id}` ||
+                        busyAction === `delete-user:${user.id}`
+                      }
+                      className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:text-ink/40"
+                    >
+                      {busyAction === `disable-user:${user.id}` ? "Disabling..." : user.disabled ? "Disabled" : "Disable"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteUser(user.id)}
+                      disabled={
+                        user.id === sessionUser.id ||
+                        busyAction === `disable-user:${user.id}` ||
+                        busyAction === `delete-user:${user.id}`
+                      }
+                      className="rounded-full border border-rose/30 bg-rose/10 px-3 py-1.5 text-xs font-semibold text-rose disabled:cursor-not-allowed disabled:text-rose/40"
+                    >
+                      {busyAction === `delete-user:${user.id}` ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-card">
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-clay">Automation service</p>
           <h2 className="mt-2 text-xl font-semibold text-ink">Service URL</h2>

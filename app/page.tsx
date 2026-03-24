@@ -1,5 +1,8 @@
-import { ResaleToolApp } from "@/components/resale-tool-app";
+import { ListMateApp } from "@/components/listmate-app";
+import { requireSessionUser } from "@/lib/server-auth";
 
-export default function HomePage() {
-  return <ResaleToolApp />;
+export default async function HomePage() {
+  const sessionUser = await requireSessionUser();
+
+  return <ListMateApp sessionUser={sessionUser} />;
 }

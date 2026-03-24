@@ -1,6 +1,7 @@
 const DEFAULT_AUTOMATION_BASE_URL = normalizeAutomationBaseUrl(process.env.NEXT_PUBLIC_AUTOMATION_BASE_URL);
 
-export const AUTOMATION_BASE_URL_STORAGE_KEY = "resale-tool.automation-base-url";
+export const AUTOMATION_BASE_URL_STORAGE_KEY = "listmate.automation-base-url";
+const LEGACY_AUTOMATION_BASE_URL_STORAGE_KEY = "resale-tool.automation-base-url";
 
 export function normalizeAutomationBaseUrl(value?: string) {
   const trimmed = value?.trim();
@@ -26,7 +27,9 @@ export function readAutomationBaseUrl() {
     return DEFAULT_AUTOMATION_BASE_URL;
   }
 
-  const saved = window.localStorage.getItem(AUTOMATION_BASE_URL_STORAGE_KEY);
+  const saved =
+    window.localStorage.getItem(AUTOMATION_BASE_URL_STORAGE_KEY) ||
+    window.localStorage.getItem(LEGACY_AUTOMATION_BASE_URL_STORAGE_KEY);
   return normalizeAutomationBaseUrl(saved || DEFAULT_AUTOMATION_BASE_URL);
 }
 

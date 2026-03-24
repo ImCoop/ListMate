@@ -1,5 +1,5 @@
 {
-  "name": "resale-listing-tool",
+  "name": "listmate",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@instantdb/admin": "^0.22.169",
     "@instantdb/react": "^0.21.12",
     "clsx": "^2.1.1",
     "next": "^15.5.3",
