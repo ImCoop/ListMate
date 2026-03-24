@@ -1,0 +1,351 @@
+import {
+  closeAutomationContext,
+  cleanupTempDir,
+  createAutomationPage,
+  ensureLoggedIn,
+  fillFirstAvailable,
+  logStep,
+  prepareImageFiles,
+  randomDelay,
+  uploadImages,
+} from "./common.js";
+
+const POSHMARK_CREATE_URL = "https://poshmark.com/sell";
+const POSHMARK_LOGIN_URL = "https://poshmark.com/login";
+
+function createReadyCheck() {
+  return async (page) => {
+    const readyLocators = [
+      page.getByRole("textbox", { name: /what are you selling/i }),
+      page.locator(".dropdown__selector.dropdown__selector--select-tag").first(),
+      page.locator('[data-test="size"]'),
+    ];
+
+    for (const locator of readyLocators) {
+      try {
+        if (await locator.first().isVisible({ timeout: 800 })) {
+          return true;
+        }
+      } catch {
+        // Keep checking.
+      }
+    }
+
+    return false;
+  };
+}
+
+function normalizeCondition(value) {
+  const lowered = String(value || "").toLowerCase();
+
+  if (lowered.includes("new")) {
+    return /new with tags|nwt|new/i;
+  }
+
+  if (lowered.includes("excellent")) {
+    return /excellent/i;
+  }
+
+  if (lowered.includes("fair")) {
+    return /fair/i;
+  }
+
+  return /good/i;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function openSellComposer(page) {
+  try {
+    const sellLink = page.getByRole("banner").getByRole("link", { name: /sell on poshmark/i });
+    if (await sellLink.isVisible({ timeout: 1500 })) {
+      await sellLink.click();
+      return;
+    }
+  } catch {
+    // Continue on current page.
+  }
+}
+
+async function fillDescriptionField(page, value) {
+  const specificField = page.getByRole("textbox", { name: /^form__text$/i });
+
+  try {
+    const count = await specificField.count();
+
+    if (count > 1) {
+      await specificField.nth(1).click();
+      await specificField.nth(1).fill(String(value));
+      return true;
+    }
+
+    if (count === 1) {
+      await specificField.first().click();
+      await specificField.first().fill(String(value));
+      return true;
+    }
+  } catch {
+    // Fall back below.
+  }
+
+  return fillFirstAvailable(page, { platform: "poshmark", name: "description" }, value, [
+    (currentPage) => currentPage.getByLabel(/description/i),
+    (currentPage) => currentPage.getByPlaceholder(/description/i),
+    (currentPage) => currentPage.getByRole("textbox", { name: /description/i }),
+  ]);
+}
+
+async function selectCategory(page, topCategory, subcategory) {
+  await page.locator(".dropdown__selector.dropdown__selector--select-tag").first().click();
+  await page.waitForTimeout(500);
+
+  const topCategoryOption = page.getByText(String(topCategory || "Women"), { exact: true });
+
+  try {
+    await topCategoryOption.click({ timeout: 1500 });
+  } catch {
+    await page.locator("a").nth(3).click();
+  }
+
+  await page.waitForTimeout(500);
+
+  if (subcategory) {
+    const subcategoryOption = page.getByText(String(subcategory), { exact: true });
+
+    try {
+      await subcategoryOption.click({ timeout: 1500 });
+      return;
+    } catch {
+      // Fall back below.
+    }
+
+    const looseMatch = page.getByText(new RegExp(String(subcategory).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+    await looseMatch.first().click();
+  }
+}
+
+async function selectInventoryMode(page, quantity) {
+  await page.getByRole("button", { name: /single item/i }).click();
+}
+
+async function selectSize(page, size) {
+  if (!size) {
+    return;
+  }
+
+  await page.locator('[data-test="size"]').click();
+  const exactSizeIdButton = page.locator(`button#size-${String(size)}`);
+  const exactSizeButton = page.getByRole("button", { name: String(size), exact: true });
+  const exactSizeOption = page.getByRole("option", { name: String(size), exact: true });
+  const looseSizeButton = page.getByText(new RegExp(`^${escapeRegExp(String(size))}$`, "i"));
+
+  try {
+    if (await exactSizeIdButton.first().isVisible({ timeout: 1200 })) {
+      await exactSizeIdButton.first().click();
+      return;
+    }
+  } catch {
+    // Keep checking alternate size paths.
+  }
+
+  try {
+    if (await exactSizeButton.first().isVisible({ timeout: 1200 })) {
+      await exactSizeButton.first().click();
+      return;
+    }
+  } catch {
+    // Keep checking alternate size paths.
+  }
+
+  try {
+    if (await exactSizeOption.first().isVisible({ timeout: 700 })) {
+      await exactSizeOption.first().click();
+      return;
+    }
+  } catch {
+    // Keep checking alternate size paths.
+  }
+
+  try {
+    if (await looseSizeButton.first().isVisible({ timeout: 700 })) {
+      await looseSizeButton.first().click();
+      return;
+    }
+  } catch {
+    // No existing visible match found.
+  }
+  logStep("poshmark", `No existing size match found for "${size}". Leaving size unselected.`);
+
+  try {
+    await page.getByRole("button", { name: /^done$/i }).click({ timeout: 700 });
+  } catch {
+    // Size chooser may already be closed.
+  }
+}
+
+async function selectCondition(page, condition) {
+  await page.getByText(/select condition/i).click();
+  await page.getByText(normalizeCondition(condition)).first().click();
+}
+
+async function fillPrice(page, price) {
+  const numericRequiredInput = page.locator(
+    'input.listing-price-input[placeholder="*Required"][type="number"]',
+  );
+
+  try {
+    if (await numericRequiredInput.first().isVisible({ timeout: 1200 })) {
+      await numericRequiredInput.first().click();
+      await numericRequiredInput.first().fill(String(price));
+      return;
+    }
+  } catch {
+    // Fall back to alternate price selectors below.
+  }
+
+  const listingPriceInput = page.locator('[data-vv-name="listingPrice"]');
+
+  try {
+    if (await listingPriceInput.first().isVisible({ timeout: 1200 })) {
+      await listingPriceInput.first().click();
+	  await page.wait(1000);
+      await listingPriceInput.first().fill(String(price));
+      return;
+    }
+  } catch {
+    // Fall back to older selectors below.
+  }
+
+  const requiredInputs = page.getByPlaceholder("*Required");
+  const requiredCount = await requiredInputs.count();
+
+  if (requiredCount >= 3) {
+    await requiredInputs.nth(2).fill(String(price));
+    return;
+  }
+
+  await fillFirstAvailable(page, { platform: "poshmark", name: "price" }, price, [
+    (currentPage) => currentPage.getByLabel(/price/i),
+    (currentPage) => currentPage.getByPlaceholder(/\$|price/i),
+    (currentPage) => currentPage.getByRole("spinbutton", { name: /form__text/i }),
+  ]);
+}
+
+async function fillBrand(page, brand) {
+  if (!brand) {
+    return;
+  }
+
+  const brandInput = page.getByPlaceholder("Enter the Brand/Designer");
+  await brandInput.click();
+  await brandInput.fill(String(brand));
+  await page.waitForTimeout(500);
+
+  const exactMatch = page.getByText(new RegExp(`^${escapeRegExp(String(brand))}$`, "i"));
+
+  try {
+    await exactMatch.first().click({ timeout: 1000 });
+    return;
+  } catch {
+    // Fall back to enter when the site accepts a custom brand or first suggestion.
+  }
+
+  await brandInput.press("Enter");
+}
+
+export async function automatePoshmark(payload) {
+  const { context, page } = await createAutomationPage();
+  let tempDir = null;
+
+  try {
+    logStep("poshmark", "Opening create listing page.");
+    await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
+    await ensureLoggedIn({
+      page,
+      platform: "poshmark",
+      loginUrl: POSHMARK_LOGIN_URL,
+      readyCheck: createReadyCheck(),
+    });
+
+    await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
+    await openSellComposer(page);
+    await randomDelay(page);
+
+    const { filePaths, tempDir: nextTempDir } = await prepareImageFiles(payload.imageUrls);
+    tempDir = nextTempDir;
+
+    await page.locator("div").filter({ hasText: /^ADD PHOTOS & VIDEO$/ }).first().click();
+    await uploadImages(page, "poshmark", filePaths, [
+      (currentPage) => currentPage.getByRole("button", { name: /img-file-input/i }),
+      (currentPage) => currentPage.locator('input[type="file"]'),
+    ]);
+
+    await page.getByRole("button", { name: /^apply$/i }).click();
+    await randomDelay(page);
+
+    await fillFirstAvailable(page, { platform: "poshmark", name: "title" }, payload.title, [
+      (currentPage) => currentPage.getByRole("textbox", { name: /what are you selling/i }),
+    ]);
+
+    await randomDelay(page);
+    await fillDescriptionField(page, payload.description);
+
+    await randomDelay(page);
+    await selectCategory(page, payload.topCategory, payload.category);
+
+    await randomDelay(page);
+    await selectInventoryMode(page, payload.quantity);
+
+    await randomDelay(page);
+    await selectSize(page, payload.size);
+
+    await randomDelay(page);
+    await selectCondition(page, payload.condition);
+
+    await randomDelay(page);
+    await fillBrand(page, payload.brand);
+
+    await randomDelay(page);
+    await fillPrice(page, payload.price);
+
+    await page.getByRole("button", { name: /^done$/i }).click();
+    await page.getByRole("button", { name: /^next$/i }).click();
+    await page.getByRole("button", { name: /list this item/i }).click();
+	
+	await page.waitForTimeout(10000);
+
+    logStep("poshmark", "Listing submitted.");
+
+    return {
+      ok: true,
+      message: "Poshmark listing submitted.",
+    };
+  } finally {
+    await cleanupTempDir(tempDir);
+    await closeAutomationContext(context);
+  }
+}
+
+export async function startPoshmarkManualLogin() {
+  const { context, page } = await createAutomationPage();
+
+  try {
+    logStep("poshmark", "Opening Poshmark login flow.");
+    await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
+    await ensureLoggedIn({
+      page,
+      platform: "poshmark",
+      loginUrl: POSHMARK_LOGIN_URL,
+      readyCheck: createReadyCheck(),
+    });
+
+    return {
+      ok: true,
+      message: "Poshmark login completed and session saved.",
+    };
+  } finally {
+    await closeAutomationContext(context);
+  }
+}
