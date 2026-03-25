@@ -206,7 +206,16 @@ function getSubcategoryOptions(gender: GenderName, categoryGroup: string) {
 
 function getSizeOptions(gender: GenderName, categoryGroup: string, subcategory: string) {
   const subcategoryRecord = getSubcategoryRecords(gender, categoryGroup).find((entry) => entry.name === subcategory);
-  return subcategoryRecord?.sizes || getSubcategoryRecords(gender, categoryGroup)[0]?.sizes || [];
+  const baseSizes = subcategoryRecord?.sizes || getSubcategoryRecords(gender, categoryGroup)[0]?.sizes || [];
+
+  if (gender === "Men" && categoryGroup === "Bottoms") {
+    const alphaSizes = ["S", "M", "L", "XL", "XXL"];
+    const waistSizes = baseSizes.filter((size) => /^\d+$/.test(size)).map((size) => `Waist ${size}`);
+    const unique = [...new Set([...alphaSizes, ...waistSizes])];
+    return unique;
+  }
+
+  return baseSizes;
 }
 
 function getConditionRecord(value?: string | null) {
@@ -229,6 +238,18 @@ function mapConditionForPlatform(value: string | undefined, platform: Marketplac
   }
 
   return condition.label;
+}
+
+function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatform) {
+  if (!size) {
+    return size;
+  }
+
+  if (platform === "poshmark") {
+    return size;
+  }
+
+  return size.replace(/^Waist\s+/i, "");
 }
 
 const DEFAULT_GENDER: GenderName = "Women";
@@ -1068,7 +1089,7 @@ function ConnectedDashboard() {
           price: listing.price,
           quantity: listing.quantity,
           brand: listing.brand,
-          size: listing.size,
+          size: mapSizeForPlatform(listing.size, platform),
           category: listing.category,
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
