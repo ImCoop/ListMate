@@ -17,7 +17,156 @@ import type {
   PoshmarkTopCategory,
 } from "@/lib/types";
 
-const POSHMARK_TOP_CATEGORIES: PoshmarkTopCategory[] = ["Women", "Men", "Kids", "Home", "Pets", "Electronics"];
+const MARKETPLACE_TAXONOMY = {
+  genders: [
+    {
+      name: "Men",
+      categories: [
+        {
+          name: "Tops",
+          subcategories: [
+            { name: "T-Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Tank Top", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Polo", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Button-Up Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Long Sleeve Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Hoodie", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Sweatshirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+          ],
+        },
+        {
+          name: "Bottoms",
+          subcategories: [
+            { name: "Jeans", sizeType: "waist", sizes: ["28", "29", "30", "31", "32", "33", "34", "36", "38", "40", "42", "44"] },
+            { name: "Pants", sizeType: "mixed", sizes: ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40"] },
+            { name: "Shorts", sizeType: "mixed", sizes: ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38"] },
+            { name: "Sweatpants", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Joggers", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
+          ],
+        },
+        {
+          name: "Outerwear",
+          subcategories: [
+            { name: "Jacket", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Coat", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Vest", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
+          ],
+        },
+        {
+          name: "Shoes",
+          subcategories: [
+            { name: "Sneakers", sizeType: "numeric", sizes: ["6", "7", "8", "9", "10", "11", "12", "13", "14", "15"] },
+            { name: "Boots", sizeType: "numeric", sizes: ["7", "8", "9", "10", "11", "12", "13", "14", "15"] },
+            { name: "Sandals", sizeType: "numeric", sizes: ["7", "8", "9", "10", "11", "12", "13"] },
+          ],
+        },
+        {
+          name: "Accessories",
+          subcategories: [
+            { name: "Hats", sizeType: "one", sizes: ["One Size"] },
+            { name: "Belts", sizeType: "waist", sizes: ["28", "30", "32", "34", "36", "38", "40", "42", "44"] },
+            { name: "Bags", sizeType: "one", sizes: ["One Size"] },
+          ],
+        },
+      ],
+    },
+    {
+      name: "Women",
+      categories: [
+        {
+          name: "Tops",
+          subcategories: [
+            { name: "T-Shirt", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Blouse", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Tank Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
+            { name: "Crop Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
+            { name: "Sweater", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Hoodie", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+          ],
+        },
+        {
+          name: "Bottoms",
+          subcategories: [
+            { name: "Jeans", sizeType: "numeric", sizes: ["00", "0", "2", "4", "6", "8", "10", "12", "14", "16"] },
+            { name: "Pants", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14"] },
+            { name: "Shorts", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12"] },
+            { name: "Leggings", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
+            { name: "Skirts", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12"] },
+          ],
+        },
+        {
+          name: "Dresses",
+          subcategories: [
+            { name: "Casual Dress", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14"] },
+            { name: "Formal Dress", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14", "16"] },
+          ],
+        },
+        {
+          name: "Outerwear",
+          subcategories: [
+            { name: "Jacket", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Coat", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Blazer", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
+          ],
+        },
+        {
+          name: "Shoes",
+          subcategories: [
+            { name: "Heels", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
+            { name: "Sneakers", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
+            { name: "Boots", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
+            { name: "Sandals", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
+          ],
+        },
+        {
+          name: "Accessories",
+          subcategories: [
+            { name: "Jewelry", sizeType: "one", sizes: ["One Size"] },
+            { name: "Bags", sizeType: "one", sizes: ["One Size"] },
+            { name: "Belts", sizeType: "mixed", sizes: ["XS", "S", "M", "L", "XL", "24", "26", "28", "30", "32", "34", "36"] },
+          ],
+        },
+      ],
+    },
+  ],
+} as const;
+
+const CONDITION_OPTIONS = [
+  {
+    value: "NEW_WITH_TAGS",
+    label: "New with tags",
+    description: "Brand new, never worn, with original tags attached",
+    platformMap: { poshmark: "New with tags", depop: "New" },
+  },
+  {
+    value: "NEW_WITHOUT_TAGS",
+    label: "New without tags",
+    description: "Never worn, but tags are missing",
+    platformMap: { poshmark: "New without tags", depop: "Like new" },
+  },
+  {
+    value: "LIKE_NEW",
+    label: "Like new",
+    description: "Worn once or twice, no visible flaws",
+    platformMap: { poshmark: "Like new", depop: "Like new" },
+  },
+  {
+    value: "GOOD",
+    label: "Good",
+    description: "Light wear, minor flaws possible",
+    platformMap: { poshmark: "Good", depop: "Good" },
+  },
+  {
+    value: "FAIR",
+    label: "Fair",
+    description: "Noticeable wear or flaws, still wearable",
+    platformMap: { poshmark: "Fair", depop: "Fair" },
+  },
+] as const;
+
+type GenderName = (typeof MARKETPLACE_TAXONOMY.genders)[number]["name"];
+type ConditionOption = (typeof CONDITION_OPTIONS)[number];
+type ConditionValue = ConditionOption["value"];
 const PLATFORM_LABEL: Record<MarketplacePlatform, string> = {
   poshmark: "Poshmark",
   depop: "Depop",
@@ -34,20 +183,137 @@ const PLATFORM_STATE_KEY: Record<MarketplacePlatform, "poshmarkState" | "depopSt
   ebay: "ebayState",
 };
 
-const emptyForm = {
+function getGenderRecord(gender: GenderName) {
+  return MARKETPLACE_TAXONOMY.genders.find((entry) => entry.name === gender) || MARKETPLACE_TAXONOMY.genders[0];
+}
+
+function getCategoryRecords(gender: GenderName) {
+  return getGenderRecord(gender).categories;
+}
+
+function getSubcategoryRecords(gender: GenderName, categoryGroup: string) {
+  const category = getCategoryRecords(gender).find((entry) => entry.name === categoryGroup);
+  return category?.subcategories || getCategoryRecords(gender)[0]?.subcategories || [];
+}
+
+function getCategoryOptions(gender: GenderName) {
+  return getCategoryRecords(gender).map((entry) => entry.name);
+}
+
+function getSubcategoryOptions(gender: GenderName, categoryGroup: string) {
+  return getSubcategoryRecords(gender, categoryGroup).map((entry) => entry.name);
+}
+
+function getSizeOptions(gender: GenderName, categoryGroup: string, subcategory: string) {
+  const subcategoryRecord = getSubcategoryRecords(gender, categoryGroup).find((entry) => entry.name === subcategory);
+  return subcategoryRecord?.sizes || getSubcategoryRecords(gender, categoryGroup)[0]?.sizes || [];
+}
+
+function getConditionRecord(value?: string | null) {
+  return CONDITION_OPTIONS.find((entry) => entry.value === value) || null;
+}
+
+function getConditionLabel(value?: string | null) {
+  return getConditionRecord(value)?.label || value || "";
+}
+
+function mapConditionForPlatform(value: string | undefined, platform: MarketplacePlatform) {
+  const condition = getConditionRecord(value);
+
+  if (!condition) {
+    return value;
+  }
+
+  if (platform === "poshmark" || platform === "depop") {
+    return condition.platformMap[platform];
+  }
+
+  return condition.label;
+}
+
+const DEFAULT_GENDER: GenderName = "Women";
+const DEFAULT_CATEGORY_GROUP = getCategoryOptions(DEFAULT_GENDER)[0] || "Tops";
+const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "T-Shirt";
+const DEFAULT_SIZE = getSizeOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP, DEFAULT_SUBCATEGORY)[0] || "M";
+
+type FormState = {
+  title: string;
+  description: string;
+  price: string;
+  quantity: string;
+  imageUrls: string[];
+  brand: string;
+  size: string;
+  categoryGroup: string;
+  category: string;
+  topCategory: PoshmarkTopCategory;
+  condition: ConditionValue;
+};
+
+const emptyForm: FormState = {
   title: "",
   description: "",
   price: "",
   quantity: "1",
-  imageUrls: [] as string[],
+  imageUrls: [],
   brand: "",
-  size: "",
-  category: "",
-  topCategory: "Women" as PoshmarkTopCategory,
-  condition: "",
+  size: DEFAULT_SIZE,
+  categoryGroup: DEFAULT_CATEGORY_GROUP,
+  category: DEFAULT_SUBCATEGORY,
+  topCategory: DEFAULT_GENDER as PoshmarkTopCategory,
+  condition: "GOOD",
 };
 
-type FormState = typeof emptyForm;
+function validateListingInput(input: ListingInput, form: FormState) {
+  if (!input.title || input.title.length > 80) {
+    return "Title is required and must be 80 characters or fewer.";
+  }
+
+  if (!input.description || input.description.length < 10 || input.description.length > 1000) {
+    return "Description must be between 10 and 1000 characters.";
+  }
+
+  if (!Number.isFinite(input.price) || input.price <= 0) {
+    return "Price must be greater than 0.";
+  }
+
+  if (!Number.isInteger(input.quantity) || input.quantity < 1) {
+    return "Quantity must be a whole number of at least 1.";
+  }
+
+  if (!input.imageUrls.length) {
+    return "Add at least one photo so Depop and Poshmark can post reliably.";
+  }
+
+  const gender = form.topCategory as GenderName;
+  const categoryOptions = getCategoryOptions(gender);
+
+  if (!categoryOptions.some((option) => option === form.categoryGroup)) {
+    return "Select a valid category group.";
+  }
+
+  const subcategoryOptions = getSubcategoryOptions(gender, form.categoryGroup);
+
+  if (!subcategoryOptions.some((option) => option === form.category)) {
+    return "Select a valid subcategory.";
+  }
+
+  if (!input.category || input.category.length > 60) {
+    return "Select a valid subcategory.";
+  }
+
+  const allowedSizes = getSizeOptions(gender, form.categoryGroup, form.category);
+
+  if (!input.size || !allowedSizes.some((size) => size === input.size)) {
+    return "Select a valid size for the chosen subcategory.";
+  }
+
+  if (!getConditionRecord(form.condition)) {
+    return "Select a valid condition option.";
+  }
+
+  return null;
+}
 
 function sortListings(listings: Listing[]) {
   return [...listings].sort((a, b) => b.createdAt - a.createdAt);
@@ -173,17 +439,53 @@ function NewListingSheet({
 }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const gender = form.topCategory as GenderName;
+  const categoryOptions = getCategoryOptions(gender);
+  const subcategoryOptions = getSubcategoryOptions(gender, form.categoryGroup);
+  const sizeOptions = getSizeOptions(gender, form.categoryGroup, form.category);
 
   useEffect(() => {
     if (!isOpen) {
       setForm(emptyForm);
       setIsProcessingImages(false);
+      setFormError(null);
     }
   }, [isOpen]);
 
-  async function handleImageSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).slice(0, 6);
+  useEffect(() => {
+    setForm((current) => {
+      const nextCategoryOptions = getCategoryOptions(current.topCategory as GenderName);
+      const nextCategoryGroup = nextCategoryOptions.some((option) => option === current.categoryGroup)
+        ? current.categoryGroup
+        : nextCategoryOptions[0] || "";
+      const nextSubcategoryOptions = getSubcategoryOptions(current.topCategory as GenderName, nextCategoryGroup);
+      const nextCategory = nextSubcategoryOptions.some((option) => option === current.category)
+        ? current.category
+        : nextSubcategoryOptions[0] || "";
+      const nextSizeOptions = getSizeOptions(current.topCategory as GenderName, nextCategoryGroup, nextCategory);
+      const nextSize = nextSizeOptions.some((size) => size === current.size)
+        ? current.size
+        : nextSizeOptions[0] || "";
 
+      if (
+        nextCategoryGroup === current.categoryGroup &&
+        nextCategory === current.category &&
+        nextSize === current.size
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        categoryGroup: nextCategoryGroup,
+        category: nextCategory,
+        size: nextSize,
+      };
+    });
+  }, [form.topCategory]);
+
+  async function handleSelectedFiles(files: File[]) {
     if (files.length === 0) {
       return;
     }
@@ -199,14 +501,19 @@ function NewListingSheet({
       }));
     } finally {
       setIsProcessingImages(false);
-      event.target.value = "";
     }
+  }
+
+  async function handleImageSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    await handleSelectedFiles(files);
+    event.target.value = "";
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    await onSubmit({
+    const input: ListingInput = {
       title: form.title.trim(),
       description: form.description.trim(),
       price: Number(form.price),
@@ -216,8 +523,18 @@ function NewListingSheet({
       size: form.size.trim() || undefined,
       category: form.category.trim() || undefined,
       topCategory: form.topCategory,
-      condition: form.condition.trim() || undefined,
-    });
+      condition: form.condition || undefined,
+    };
+
+    const validationError = validateListingInput(input, form);
+
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    setFormError(null);
+    await onSubmit(input);
   }
 
   if (!isOpen) {
@@ -295,21 +612,35 @@ function NewListingSheet({
 
           <Field label="Photos">
             <div className="rounded-[1.5rem] border border-dashed border-ink/15 bg-white p-4">
-              <label className="flex cursor-pointer items-center justify-center rounded-[1.2rem] bg-sand px-4 py-4 text-center text-sm font-semibold text-ink transition hover:bg-sand/80">
-                <input
-                  multiple
-                  accept="image/*"
-                  capture="environment"
-                  type="file"
-                  onChange={handleImageSelection}
-                  className="sr-only"
-                />
-                {isProcessingImages ? "Processing photos..." : "Take or upload photos"}
-              </label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label className="flex cursor-pointer items-center justify-center rounded-[1.2rem] bg-sand px-4 py-4 text-center text-sm font-semibold text-ink transition hover:bg-sand/80">
+                  <input
+                    multiple
+                    accept="image/*"
+                    type="file"
+                    onChange={handleImageSelection}
+                    className="sr-only"
+                  />
+                  Upload Existing
+                </label>
+                <label className="flex cursor-pointer items-center justify-center rounded-[1.2rem] bg-ink px-4 py-4 text-center text-sm font-semibold text-white transition hover:bg-ink/90">
+                  <input
+                    multiple
+                    accept="image/*"
+                    capture="environment"
+                    type="file"
+                    onChange={handleImageSelection}
+                    className="sr-only"
+                  />
+                  Take Photos
+                </label>
+              </div>
 
               <p className="mt-3 text-xs leading-5 text-ink/55">
-                Up to 6 images. Photos are resized before save for faster mobile use.
+                Up to 6 images total. You can choose multiple existing files or capture new photos. Photos are resized
+                before save for faster mobile use.
               </p>
+              {isProcessingImages ? <p className="mt-2 text-xs font-semibold text-ink/70">Processing photos...</p> : null}
 
               {form.imageUrls.length > 0 ? (
                 <div className="scrollbar-none mt-4 flex gap-3 overflow-x-auto pb-1">
@@ -340,33 +671,87 @@ function NewListingSheet({
             </div>
           </Field>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Poshmark Category">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Gender">
               <select
                 value={form.topCategory}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    topCategory: event.target.value as PoshmarkTopCategory,
+                    topCategory: event.target.value as GenderName as PoshmarkTopCategory,
                   }))
                 }
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
               >
-                {POSHMARK_TOP_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                {MARKETPLACE_TAXONOMY.genders.map((genderOption) => (
+                  <option key={genderOption.name} value={genderOption.name}>
+                    {genderOption.name}
                   </option>
                 ))}
               </select>
             </Field>
 
-            <Field label="Subcategory Hint">
-              <input
-                value={form.category}
-                onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
+            <Field label="Category">
+              <select
+                value={form.categoryGroup}
+                onChange={(event) =>
+                  setForm((current) => {
+                    const nextCategoryGroup = event.target.value;
+                    const nextSubcategory = getSubcategoryOptions(
+                      current.topCategory as GenderName,
+                      nextCategoryGroup,
+                    )[0] || "";
+                    const nextSize = getSizeOptions(
+                      current.topCategory as GenderName,
+                      nextCategoryGroup,
+                      nextSubcategory,
+                    )[0] || "";
+
+                    return {
+                      ...current,
+                      categoryGroup: nextCategoryGroup,
+                      category: nextSubcategory,
+                      size: nextSize,
+                    };
+                  })
+                }
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
-                placeholder="Outerwear"
-              />
+              >
+                {categoryOptions.map((categoryOption) => (
+                  <option key={categoryOption} value={categoryOption}>
+                    {categoryOption}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Subcategory">
+              <select
+                value={form.category}
+                onChange={(event) =>
+                  setForm((current) => {
+                    const nextSubcategory = event.target.value;
+                    const nextSize = getSizeOptions(
+                      current.topCategory as GenderName,
+                      current.categoryGroup,
+                      nextSubcategory,
+                    )[0] || "";
+
+                    return {
+                      ...current,
+                      category: nextSubcategory,
+                      size: nextSize,
+                    };
+                  })
+                }
+                className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
+              >
+                {subcategoryOptions.map((subcategoryOption) => (
+                  <option key={subcategoryOption} value={subcategoryOption}>
+                    {subcategoryOption}
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
 
@@ -381,23 +766,38 @@ function NewListingSheet({
             </Field>
 
             <Field label="Size">
-              <input
+              <select
                 value={form.size}
                 onChange={(event) => setForm((current) => ({ ...current, size: event.target.value }))}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
-                placeholder="L"
-              />
+              >
+                {sizeOptions.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
             </Field>
 
             <Field label="Condition">
-              <input
+              <select
                 value={form.condition}
-                onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value }))}
+                onChange={(event) => setForm((current) => ({ ...current, condition: event.target.value as ConditionValue }))}
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
-                placeholder="New With Tags"
-              />
+              >
+                {CONDITION_OPTIONS.map((condition) => (
+                  <option key={condition.value} value={condition.value}>
+                    {condition.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-ink/60">
+                {getConditionRecord(form.condition)?.description}
+              </p>
             </Field>
           </div>
+
+          {formError ? <p className="text-sm text-rose">{formError}</p> : null}
 
           <button
             type="submit"
@@ -503,7 +903,7 @@ function ListingCard({
         <div className="mt-4 flex flex-wrap gap-2 text-sm text-ink/60">
           {listing.brand ? <span className="rounded-full bg-sand px-3 py-1.5">{listing.brand}</span> : null}
           {listing.size ? <span className="rounded-full bg-sand px-3 py-1.5">Size {listing.size}</span> : null}
-          {listing.condition ? <span className="rounded-full bg-sand px-3 py-1.5">{listing.condition}</span> : null}
+          {listing.condition ? <span className="rounded-full bg-sand px-3 py-1.5">{getConditionLabel(listing.condition)}</span> : null}
           {listing.category ? <span className="rounded-full bg-sand px-3 py-1.5">{listing.category}</span> : null}
           {listing.imageUrls.length > 0 ? (
             <span className="rounded-full bg-sand px-3 py-1.5">{listing.imageUrls.length} images</span>
@@ -671,7 +1071,7 @@ function ConnectedDashboard() {
           size: listing.size,
           category: listing.category,
           topCategory: listing.topCategory,
-          condition: listing.condition,
+          condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls: listing.imageUrls,
         }),
       });
