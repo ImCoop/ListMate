@@ -18,6 +18,12 @@ npm run start
 
 The service listens on `http://localhost:3001`.
 
+## Removal endpoints (used by monitoring-service)
+
+- `POST /ebay/remove` (implemented via eBay Trading API `EndFixedPriceItem`)
+- `POST /poshmark/remove` (implemented via Playwright UI flow)
+- `POST /depop/remove` (implemented via Playwright UI flow)
+
 ## eBay API setup
 
 Create `automation-service/.env` or `automation-service/.env.local` with:

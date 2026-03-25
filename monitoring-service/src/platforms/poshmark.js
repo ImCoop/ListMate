@@ -1,6 +1,9 @@
+import { removeViaAutomation } from "./remove-via-automation.js";
+
 export async function removePoshmarkListing({ listingId, url }) {
-  return {
-    ok: false,
-    error: `Poshmark removal not implemented yet (listingId=${listingId}, url=${url})`,
-  };
+  return removeViaAutomation({
+    platform: "poshmark",
+    listingId,
+    url,
+  });
 }

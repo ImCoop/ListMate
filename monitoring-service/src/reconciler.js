@@ -2,6 +2,8 @@ import { completeJob } from "./store/job-store.js";
 import { removeDepopListing } from "./platforms/depop.js";
 import { removeEbayListing } from "./platforms/ebay.js";
 import { removePoshmarkListing } from "./platforms/poshmark.js";
+import { PLATFORM_URL_KEY, PLATFORM_STATE_KEY, PLATFORMS } from "./platforms/constants.js";
+import { hasListingStoreConfig, updateListing } from "./store/listing-store.js";
 
 const ADAPTERS = {
   poshmark: removePoshmarkListing,
@@ -15,12 +17,10 @@ function backoffMs(attempt) {
 }
 
 export function buildRemovalJobsFromSaleEvent(event, maxAttempts) {
-  const allPlatforms = ["poshmark", "depop", "ebay"];
-
-  return allPlatforms
+  return PLATFORMS
     .filter((platform) => platform !== event.soldOnPlatform)
     .map((platform) => {
-      const urlField = `${platform}Url`;
+      const urlField = PLATFORM_URL_KEY[platform];
       const url = event[urlField];
 
       if (!url) {
@@ -36,6 +36,18 @@ export function buildRemovalJobsFromSaleEvent(event, maxAttempts) {
       };
     })
     .filter(Boolean);
+}
+
+async function syncListingPlatformState(job, nextState) {
+  if (!hasListingStoreConfig()) {
+    return;
+  }
+
+  const stateKey = PLATFORM_STATE_KEY[job.targetPlatform];
+
+  await updateListing(job.listingId, {
+    [stateKey]: nextState,
+  });
 }
 
 export async function processJob(job) {
@@ -61,6 +73,7 @@ export async function processJob(job) {
     });
 
     if (result?.ok) {
+      await syncListingPlatformState(job, "removed");
       await completeJob(job.id, {
         status: "succeeded",
         attempts,
@@ -71,6 +84,7 @@ export async function processJob(job) {
     }
 
     const retryable = attempts < Number(job.maxAttempts || 1);
+    await syncListingPlatformState(job, "remove_pending");
     await completeJob(job.id, {
       status: retryable ? "queued" : "failed",
       attempts,
@@ -80,6 +94,7 @@ export async function processJob(job) {
     });
   } catch (error) {
     const retryable = attempts < Number(job.maxAttempts || 1);
+    await syncListingPlatformState(job, "remove_pending");
     await completeJob(job.id, {
       status: retryable ? "queued" : "failed",
       attempts,

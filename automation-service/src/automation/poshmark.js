@@ -13,6 +13,29 @@ import {
 const POSHMARK_CREATE_URL = "https://poshmark.com/sell";
 const POSHMARK_LOGIN_URL = "https://poshmark.com/login";
 
+function normalizeUrl(value) {
+  return String(value || "").split("#")[0].split("?")[0];
+}
+
+function isPoshmarkListingUrl(value) {
+  return /poshmark\.com\/listing\//i.test(String(value || ""));
+}
+
+async function resolvePostedPoshmarkListingUrl(page) {
+  await page.waitForTimeout(2500);
+  await page.locator(".card").first().click({ timeout: 10000 });
+  await page.waitForLoadState("domcontentloaded");
+  await page.waitForTimeout(1200);
+
+  const listingUrl = normalizeUrl(page.url());
+
+  if (!isPoshmarkListingUrl(listingUrl)) {
+    throw new Error("Poshmark listing URL was not captured after posting.");
+  }
+
+  return listingUrl;
+}
+
 function createReadyCheck() {
   return async (page) => {
     const readyLocators = [
@@ -313,9 +336,8 @@ export async function automatePoshmark(payload) {
     await page.getByRole("button", { name: /^done$/i }).click();
     await page.getByRole("button", { name: /^next$/i }).click();
     await page.getByRole("button", { name: /list this item/i }).click();
-	
-	await page.waitForTimeout(10000);
-    const listingUrl = page.url();
+
+    const listingUrl = await resolvePostedPoshmarkListingUrl(page);
 
     logStep("poshmark", "Listing submitted.");
 
@@ -346,6 +368,63 @@ export async function startPoshmarkManualLogin() {
     return {
       ok: true,
       message: "Poshmark login completed and session saved.",
+    };
+  } finally {
+    await closeAutomationContext(context);
+  }
+}
+
+export async function removePoshmarkListing({ listingId, url }) {
+  const listingUrl = String(url || "").trim();
+
+  if (!listingUrl) {
+    return {
+      ok: false,
+      error: "A Poshmark listing URL is required for removal.",
+    };
+  }
+
+  if (!/poshmark\.com\/listing\//i.test(listingUrl)) {
+    return {
+      ok: false,
+      error: "Poshmark removal requires a listing URL (https://poshmark.com/listing/...), not a closet/profile URL.",
+    };
+  }
+
+  const { context, page } = await createAutomationPage();
+
+  try {
+    logStep("poshmark", `Opening listing for removal: ${listingUrl}`);
+    await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
+
+    if (page.url().includes("/login")) {
+      await ensureLoggedIn({
+        page,
+        platform: "poshmark",
+        loginUrl: POSHMARK_LOGIN_URL,
+        readyCheck: async (currentPage) => !currentPage.url().includes("/login"),
+      });
+
+      await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
+    }
+
+    logStep("poshmark", "Opening edit listing menu.");
+    await page.getByText(/edit listing/i).first().click({ timeout: 10000 });
+
+    logStep("poshmark", "Deleting listing.");
+    await page.locator("a").filter({ hasText: /delete listing/i }).first().click({ timeout: 10000 });
+    await page.getByRole("button", { name: /^yes$/i }).first().click({ timeout: 10000 });
+    await page.waitForTimeout(1500);
+
+    return {
+      ok: true,
+      message: `Poshmark listing deleted${listingId ? ` (${listingId})` : ""}.`,
+      listingUrl,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Poshmark listing removal failed.",
     };
   } finally {
     await closeAutomationContext(context);

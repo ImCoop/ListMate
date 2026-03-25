@@ -340,6 +340,10 @@ function sortListings(listings: Listing[]) {
   return [...listings].sort((a, b) => b.createdAt - a.createdAt);
 }
 
+function getListingImageUrls(listing: Partial<Listing>) {
+  return Array.isArray(listing.imageUrls) ? listing.imageUrls : [];
+}
+
 function statusTone(status: ListingStatus) {
   if (status === "sold") {
     return "bg-rose/15 text-rose";
@@ -460,7 +464,9 @@ function NewListingSheet({
 }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const enableAiDescriptionUi = false;
   const gender = form.topCategory as GenderName;
   const categoryOptions = getCategoryOptions(gender);
   const subcategoryOptions = getSubcategoryOptions(gender, form.categoryGroup);
@@ -470,6 +476,7 @@ function NewListingSheet({
     if (!isOpen) {
       setForm(emptyForm);
       setIsProcessingImages(false);
+      setIsGeneratingDescription(false);
       setFormError(null);
     }
   }, [isOpen]);
@@ -556,6 +563,53 @@ function NewListingSheet({
 
     setFormError(null);
     await onSubmit(input);
+  }
+
+  async function generateDescriptionFromPhotos() {
+    if (!form.imageUrls.length) {
+      return;
+    }
+
+    setFormError(null);
+    setIsGeneratingDescription(true);
+
+    try {
+      const response = await fetch("/api/ai/description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrls: form.imageUrls,
+          title: form.title,
+          brand: form.brand,
+          category: form.category,
+          size: form.size,
+          condition: getConditionLabel(form.condition),
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as { error?: string; description?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Description generation failed with ${response.status}`);
+      }
+
+      const description = payload?.description?.trim();
+
+      if (!description) {
+        throw new Error("AI returned an empty description.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        description,
+      }));
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Could not generate description.");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
   }
 
   if (!isOpen) {
@@ -687,6 +741,22 @@ function NewListingSheet({
                       </button>
                     </div>
                   ))}
+                </div>
+              ) : null}
+
+              {enableAiDescriptionUi ? (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={generateDescriptionFromPhotos}
+                    disabled={form.imageUrls.length === 0 || isProcessingImages || isGeneratingDescription || isSaving}
+                    className="w-full rounded-[1.2rem] border border-ink/10 bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-sand disabled:cursor-not-allowed disabled:text-ink/40"
+                  >
+                    {isGeneratingDescription ? "Generating description..." : "Use AI to Generate Description"}
+                  </button>
+                  {form.imageUrls.length === 0 ? (
+                    <p className="mt-2 text-xs text-ink/55">Add photos to enable AI description generation.</p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -822,10 +892,16 @@ function NewListingSheet({
 
           <button
             type="submit"
-            disabled={isSaving || isProcessingImages}
+            disabled={isSaving || isProcessingImages || isGeneratingDescription}
             className="w-full rounded-[1.4rem] bg-ink px-5 py-4 text-base font-semibold text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:bg-ink/40"
           >
-            {isSaving ? "Saving..." : isProcessingImages ? "Preparing photos..." : "Save listing"}
+            {isSaving
+              ? "Saving..."
+              : isProcessingImages
+                ? "Preparing photos..."
+                : isGeneratingDescription
+                  ? "Generating description..."
+                  : "Save listing"}
           </button>
         </form>
       </div>
@@ -886,14 +962,21 @@ function ListingCard({
   isDeleting: boolean;
 }) {
   const listingIdLabel = listing.id.slice(0, 8).toUpperCase();
+  const listingImageUrls = getListingImageUrls(listing);
+  const listingTitle = typeof listing.title === "string" && listing.title.trim() ? listing.title : "Untitled listing";
+  const listingDescription = typeof listing.description === "string" ? listing.description : "";
+  const listingPrice = typeof listing.price === "number" && Number.isFinite(listing.price) ? listing.price : 0;
+  const listingQuantity = Number.isInteger(listing.quantity) && listing.quantity > 0 ? listing.quantity : 1;
+  const listingStatus: ListingStatus =
+    listing.status === "sold" || listing.status === "listed" || listing.status === "draft" ? listing.status : "draft";
 
   return (
     <article className="rounded-[2rem] border border-white/70 bg-white/90 p-5 shadow-card backdrop-blur">
-      {listing.imageUrls[0] ? (
+      {listingImageUrls[0] ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={listing.imageUrls[0]}
-          alt={listing.title}
+          src={listingImageUrls[0]}
+          alt={listingTitle}
           className="mb-4 h-48 w-full rounded-[1.5rem] object-cover"
         />
       ) : null}
@@ -904,30 +987,30 @@ function ListingCard({
             {listing.topCategory || listing.category || "Listing"}
           </p>
           <p className="mt-2 font-mono text-xs uppercase tracking-[0.2em] text-ink/45">ID {listingIdLabel}</p>
-          <h2 className="mt-2 text-xl font-semibold leading-tight text-ink">{listing.title}</h2>
+          <h2 className="mt-2 text-xl font-semibold leading-tight text-ink">{listingTitle}</h2>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-ink px-3 py-2 text-sm font-semibold text-white">
-              ${listing.price.toFixed(2)}
+              ${listingPrice.toFixed(2)}
             </span>
-            <span className={clsx("rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em]", statusTone(listing.status))}>
-              {listing.status}
+            <span className={clsx("rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em]", statusTone(listingStatus))}>
+              {listingStatus}
             </span>
           </div>
         </div>
 
         <div className="text-right font-mono text-xs uppercase tracking-[0.16em] text-ink/45">
-          Qty {listing.quantity}
+          Qty {listingQuantity}
         </div>
       </div>
 
-      {(listing.brand || listing.size || listing.condition || listing.category || listing.imageUrls.length > 0) && (
+      {(listing.brand || listing.size || listing.condition || listing.category || listingImageUrls.length > 0) && (
         <div className="mt-4 flex flex-wrap gap-2 text-sm text-ink/60">
           {listing.brand ? <span className="rounded-full bg-sand px-3 py-1.5">{listing.brand}</span> : null}
           {listing.size ? <span className="rounded-full bg-sand px-3 py-1.5">Size {listing.size}</span> : null}
           {listing.condition ? <span className="rounded-full bg-sand px-3 py-1.5">{getConditionLabel(listing.condition)}</span> : null}
           {listing.category ? <span className="rounded-full bg-sand px-3 py-1.5">{listing.category}</span> : null}
-          {listing.imageUrls.length > 0 ? (
-            <span className="rounded-full bg-sand px-3 py-1.5">{listing.imageUrls.length} images</span>
+          {listingImageUrls.length > 0 ? (
+            <span className="rounded-full bg-sand px-3 py-1.5">{listingImageUrls.length} images</span>
           ) : null}
         </div>
       )}
@@ -982,10 +1065,10 @@ function ListingCard({
         </div>
       )}
 
-      <p className="mt-4 line-clamp-3 text-sm leading-6 text-ink/70">{listing.description}</p>
+      <p className="mt-4 line-clamp-3 text-sm leading-6 text-ink/70">{listingDescription}</p>
 
       <div className="mt-5">
-        <StatusControl currentStatus={listing.status} onChange={(status) => onUpdateStatus(listing.id, status)} />
+        <StatusControl currentStatus={listingStatus} onChange={(status) => onUpdateStatus(listing.id, status)} />
       </div>
 
       {sendingPlatform ? (
@@ -1070,6 +1153,7 @@ function ConnectedDashboard() {
 
   async function sendToAutomation(listing: Listing, platform: AutomationPlatform) {
     const requestKey = `${listing.id}:${platform}`;
+    const imageUrls = getListingImageUrls(listing);
 
     setSendingMap((current) => ({
       ...current,
@@ -1093,7 +1177,7 @@ function ConnectedDashboard() {
           category: listing.category,
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
-          imageUrls: listing.imageUrls,
+          imageUrls,
         }),
       });
 

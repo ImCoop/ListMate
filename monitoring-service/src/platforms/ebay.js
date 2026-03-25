@@ -1,6 +1,9 @@
+import { removeViaAutomation } from "./remove-via-automation.js";
+
 export async function removeEbayListing({ listingId, url }) {
-  return {
-    ok: false,
-    error: `eBay removal not implemented yet (listingId=${listingId}, url=${url})`,
-  };
+  return removeViaAutomation({
+    platform: "ebay",
+    listingId,
+    url,
+  });
 }
