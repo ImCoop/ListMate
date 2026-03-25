@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "status": "node service-status.js",
+    "hub": "node service-hub.js",
+    "hub:prod": "node service-hub.js --prod"
   },
   "dependencies": {
     "@instantdb/admin": "^0.22.169",
