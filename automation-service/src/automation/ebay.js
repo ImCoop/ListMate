@@ -329,6 +329,61 @@ function extractTagValue(xml, tagName) {
   return match?.[1]?.trim() || "";
 }
 
+function extractEbayListingId(value) {
+  const text = String(value || "").trim();
+
+  if (!text) {
+    return "";
+  }
+
+  const byPath = text.match(/\/itm\/(\d+)/i);
+  if (byPath?.[1]) {
+    return byPath[1];
+  }
+
+  const byQuery = text.match(/[?&]item=(\d+)/i);
+  if (byQuery?.[1]) {
+    return byQuery[1];
+  }
+
+  if (/^\d{8,}$/.test(text)) {
+    return text;
+  }
+
+  return "";
+}
+
+async function endEbayFixedPriceItem({ userToken, itemId, siteId }) {
+  const response = await fetch(EBAY_TRADING_URL, {
+    method: "POST",
+    headers: {
+      "X-EBAY-API-CALL-NAME": "EndFixedPriceItem",
+      "X-EBAY-API-SITEID": siteId,
+      "X-EBAY-API-COMPATIBILITY-LEVEL": "1231",
+      "X-EBAY-API-RESPONSE-ENCODING": "XML",
+      "X-EBAY-API-IAF-TOKEN": userToken,
+      "Content-Type": "text/xml",
+    },
+    body: `<?xml version="1.0" encoding="utf-8"?>
+<EndFixedPriceItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <EndingReason>NotAvailable</EndingReason>
+  <ItemID>${escapeXml(itemId)}</ItemID>
+</EndFixedPriceItemRequest>`,
+  });
+
+  const xml = await response.text();
+  const ack = extractTagValue(xml, "Ack");
+  const errorMessage = extractTagValue(xml, "LongMessage") || extractTagValue(xml, "ShortMessage");
+
+  if (!response.ok) {
+    throw new Error(errorMessage || `eBay EndFixedPriceItem failed with ${response.status}`);
+  }
+
+  if (ack && !/success|warning/i.test(ack)) {
+    throw new Error(errorMessage || "eBay EndFixedPriceItem did not succeed.");
+  }
+}
+
 async function uploadEbayHostedPicture(userToken, filePath, siteId) {
   const fileBuffer = await fs.readFile(filePath);
   const fileName = path.basename(filePath);
@@ -528,6 +583,32 @@ export async function automateEbay(payload) {
       : "eBay listing submitted.",
     listingId,
     listingUrl,
+  };
+}
+
+export async function removeEbayListing({ listingId, url }) {
+  const config = assertConfigured();
+  const marketplaceSettings = getMarketplaceSettings(config.marketplaceId);
+  const itemId = extractEbayListingId(url) || extractEbayListingId(listingId);
+
+  if (!itemId) {
+    return {
+      ok: false,
+      error: "Unable to determine eBay item ID from listingId/url.",
+    };
+  }
+
+  const userToken = await getUserAccessToken();
+  await endEbayFixedPriceItem({
+    userToken,
+    itemId,
+    siteId: marketplaceSettings.siteId,
+  });
+
+  return {
+    ok: true,
+    message: `eBay listing ended (${itemId}).`,
+    listingId: itemId,
   };
 }
 

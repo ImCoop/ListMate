@@ -15,6 +15,14 @@ const DEPOP_LOGIN_URL = "https://www.depop.com/login";
 const DEPOP_HOME_URL = "https://www.depop.com/";
 const DEPOP_SELL_URL = "https://www.depop.com/sell/";
 
+function normalizeUrl(value) {
+  return String(value || "").split("#")[0].split("?")[0];
+}
+
+function isDepopProductUrl(value) {
+  return /depop\.com\/products\//i.test(String(value || ""));
+}
+
 const PACKAGE_SIZE_KEYWORDS = [
   { size: "Extra Small", keywords: ["ring", "bracelet", "earring", "necklace", "jewelry", "wallet", "cardholder"] },
   { size: "Small", keywords: ["t-shirt", "tee", "top", "shorts", "skirt", "beanie", "cap", "hat", "scarf"] },
@@ -335,9 +343,16 @@ export async function automateDepop(payload) {
 
     logStep("depop", "Submitting listing.");
     await page.getByRole("button", { name: /^post$/i }).click({ delay: 80 });
-	
-	await page.waitForTimeout(5000);
-    const listingUrl = page.url();
+
+    await page.getByRole("link", { name: "View listing" }).click({ timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(1200);
+
+    const listingUrl = normalizeUrl(page.url());
+
+    if (!isDepopProductUrl(listingUrl)) {
+      throw new Error("Depop listing URL was not captured after posting.");
+    }
 
     return {
       ok: true,
@@ -386,6 +401,72 @@ export async function authenticateDepopMagicLink(magicLink) {
     return {
       ok: true,
       message: "Depop session authenticated from the pasted magic link.",
+    };
+  } finally {
+    await closeAutomationContext(context);
+  }
+}
+
+export async function removeDepopListing({ listingId, url }) {
+  const listingUrl = normalizeUrl(url);
+
+  if (!listingUrl) {
+    return {
+      ok: false,
+      error: "A Depop listing URL is required for removal.",
+    };
+  }
+
+  if (!isDepopProductUrl(listingUrl)) {
+    return {
+      ok: false,
+      error: "Depop removal requires a product URL (https://www.depop.com/products/...).",
+    };
+  }
+
+  const { context, page } = await createAutomationPage();
+
+  try {
+    await ensureDepopSession(page);
+
+    logStep("depop", `Opening listing for removal: ${listingUrl}`);
+    await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1000);
+
+    if (page.url().toLowerCase().includes("/login")) {
+      await ensureDepopSession(page);
+      await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(1000);
+    }
+
+    const openedActions = await clickFirstVisible(page, "depop", "Opening listing actions.", [
+      (currentPage) => currentPage.getByRole("button", { name: /more|options|actions/i }),
+      (currentPage) => currentPage.locator('button[aria-label*="More"]'),
+      (currentPage) => currentPage.locator('button[aria-label*="Options"]'),
+      (currentPage) => currentPage.locator('[data-testid*="more"]').first(),
+    ]);
+
+    if (!openedActions) {
+      logStep("depop", "Actions button not found, trying direct delete control.");
+    }
+
+    logStep("depop", "Choosing delete listing.");
+    await page.getByRole("button", { name: "Delete listing" }).click({ timeout: 10000 });
+
+    logStep("depop", "Confirming delete listing.");
+    await page.getByRole("dialog").getByRole("button", { name: "Delete listing" }).click({ timeout: 10000 });
+
+    await page.waitForTimeout(5000);
+
+    return {
+      ok: true,
+      message: `Depop listing deleted${listingId ? ` (${listingId})` : ""}.`,
+      listingUrl,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Depop listing removal failed.",
     };
   } finally {
     await closeAutomationContext(context);

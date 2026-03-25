@@ -1,10 +1,17 @@
 import express from "express";
 import cors from "cors";
 
-import { authenticateDepopMagicLink, automateDepop, startDepopManualLogin } from "./automation/depop.js";
-import { automateEbay, getEbayConsentUrl, getEbayStatus, handleEbayOAuthCallback, startEbayManualLogin } from "./automation/ebay.js";
+import { authenticateDepopMagicLink, automateDepop, removeDepopListing, startDepopManualLogin } from "./automation/depop.js";
+import {
+  automateEbay,
+  getEbayConsentUrl,
+  getEbayStatus,
+  handleEbayOAuthCallback,
+  removeEbayListing,
+  startEbayManualLogin,
+} from "./automation/ebay.js";
 import { logError, logStep } from "./automation/common.js";
-import { automatePoshmark, startPoshmarkManualLogin } from "./automation/poshmark.js";
+import { automatePoshmark, removePoshmarkListing, startPoshmarkManualLogin } from "./automation/poshmark.js";
 import { loadLocalEnv } from "./env.js";
 
 loadLocalEnv();
@@ -47,6 +54,13 @@ function validatePayload(payload) {
   return null;
 }
 
+function normalizeRemovalPayload(body = {}) {
+  return {
+    listingId: body.listingId || "",
+    url: body.url || "",
+  };
+}
+
 app.get("/health", (_request, response) => {
   response.json({ ok: true });
 });
@@ -85,6 +99,27 @@ app.post("/poshmark/login", async (_request, response) => {
   }
 });
 
+app.post("/poshmark/remove", async (request, response) => {
+  const payload = normalizeRemovalPayload(request.body);
+
+  try {
+    logStep("poshmark", "Removal request received.");
+    const result = await removePoshmarkListing(payload);
+
+    if (!result?.ok) {
+      response.status(400).json(result);
+      return;
+    }
+
+    response.json(result);
+  } catch (error) {
+    logError("poshmark", error);
+    response.status(500).json({
+      error: error instanceof Error ? error.message : "Poshmark removal failed",
+    });
+  }
+});
+
 app.post("/depop", async (request, response) => {
   const payload = normalizePayload(request.body);
   const validationError = validatePayload(payload);
@@ -119,6 +154,27 @@ app.post("/depop/login", async (_request, response) => {
   }
 });
 
+app.post("/depop/remove", async (request, response) => {
+  const payload = normalizeRemovalPayload(request.body);
+
+  try {
+    logStep("depop", "Removal request received.");
+    const result = await removeDepopListing(payload);
+
+    if (!result?.ok) {
+      response.status(400).json(result);
+      return;
+    }
+
+    response.json(result);
+  } catch (error) {
+    logError("depop", error);
+    response.status(500).json({
+      error: error instanceof Error ? error.message : "Depop removal failed",
+    });
+  }
+});
+
 app.post("/ebay", async (request, response) => {
   const payload = normalizePayload(request.body);
   const validationError = validatePayload(payload);
@@ -149,6 +205,27 @@ app.post("/ebay/login", async (_request, response) => {
     logError("ebay", error);
     response.status(500).json({
       error: error instanceof Error ? error.message : "eBay login failed",
+    });
+  }
+});
+
+app.post("/ebay/remove", async (request, response) => {
+  const payload = normalizeRemovalPayload(request.body);
+
+  try {
+    logStep("ebay", "Removal request received.");
+    const result = await removeEbayListing(payload);
+
+    if (!result?.ok) {
+      response.status(400).json(result);
+      return;
+    }
+
+    response.json(result);
+  } catch (error) {
+    logError("ebay", error);
+    response.status(500).json({
+      error: error instanceof Error ? error.message : "eBay removal failed",
     });
   }
 });

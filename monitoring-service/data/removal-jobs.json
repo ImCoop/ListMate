@@ -1,0 +1,62 @@
+[
+  {
+    "id": "714bfce0-f2a1-4c5f-b7aa-c94a548cd9d5",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774460422853,
+    "updatedAt": 1774460441794,
+    "lastAttemptAt": 1774460424742,
+    "nextAttemptAt": 1774460422853,
+    "error": null,
+    "listingId": "736f908c-3dac-4c39-91ae-ec44ac5b9976",
+    "soldOnPlatform": "depop",
+    "targetPlatform": "poshmark",
+    "url": "https://poshmark.com/listing/Pants-69c41cdda6bb766e4e997553",
+    "maxAttempts": 5
+  },
+  {
+    "id": "96328485-b51b-4ed2-9a93-f9422cf10255",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774461582634,
+    "updatedAt": 1774461603193,
+    "lastAttemptAt": 1774461586142,
+    "nextAttemptAt": 1774461582634,
+    "error": null,
+    "listingId": "72ba7b48-80fa-4042-a900-9e8acf29c66f",
+    "soldOnPlatform": "depop",
+    "targetPlatform": "poshmark",
+    "url": "https://poshmark.com/listing/Pants-69c422505280152768a5153a",
+    "maxAttempts": 5
+  },
+  {
+    "id": "5aa857aa-9e7c-45be-a5f0-1ed98637d7ce",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774461753665,
+    "updatedAt": 1774461775753,
+    "lastAttemptAt": 1774461756435,
+    "nextAttemptAt": 1774461753665,
+    "error": null,
+    "listingId": "6263f5b6-ae72-4f82-85d4-9ebba793b01d",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/im8oop-pants-theyre-comfy-c9b8/manage/",
+    "maxAttempts": 5
+  },
+  {
+    "id": "9a1b59d4-8a5b-4dec-8844-9d51422e9ac4",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774462223220,
+    "updatedAt": 1774462249868,
+    "lastAttemptAt": 1774462227025,
+    "nextAttemptAt": 1774462223220,
+    "error": null,
+    "listingId": "aefecdf5-ba40-4eff-99be-a52bde07c3ce",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/imc2op-pants-guess-theyre-great-b90d/manage/",
+    "maxAttempts": 5
+  }
+]

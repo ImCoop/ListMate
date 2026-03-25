@@ -18,6 +18,44 @@ type HealthState = {
   message: string;
 } | null;
 
+type MonitoringJob = {
+  id: string;
+  status: "queued" | "processing" | "succeeded" | "failed";
+  listingId?: string;
+  targetPlatform?: string;
+  attempts?: number;
+  error?: string | null;
+  updatedAt?: number;
+};
+
+type MonitoringJobsPayload = {
+  ok?: boolean;
+  count?: number;
+  jobs?: MonitoringJob[];
+  error?: string;
+};
+
+type ClearFailedJobsPayload = {
+  ok?: boolean;
+  removed?: number;
+  remaining?: number;
+  error?: string;
+};
+
+type MonitorRunPayload = {
+  ok?: boolean;
+  monitor?: {
+    ok?: boolean;
+    skipped?: boolean;
+    checkedListings?: number;
+    soldDetectedCount?: number;
+    queuedRemovalJobs?: number;
+    reason?: string;
+    error?: string;
+  };
+  error?: string;
+};
+
 type EbayStatus = {
   configured: boolean;
   connected: boolean;
@@ -35,6 +73,16 @@ type UserListItem = {
   createdAt: number;
 };
 
+function deriveMonitoringBaseUrl(automationBaseUrl: string) {
+  try {
+    const url = new URL(normalizeAutomationBaseUrl(automationBaseUrl));
+    url.port = "3010";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return "http://localhost:3010";
+  }
+}
+
 export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
   const [automationBaseUrl, setAutomationBaseUrl] = useState(readAutomationBaseUrl);
   const [draftBaseUrl, setDraftBaseUrl] = useState(readAutomationBaseUrl);
@@ -43,11 +91,13 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
   const [toast, setToast] = useState<string | null>(null);
   const [depopMagicLink, setDepopMagicLink] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [failedMonitoringJobs, setFailedMonitoringJobs] = useState<MonitoringJob[]>([]);
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("user");
+  const monitoringBaseUrl = deriveMonitoringBaseUrl(automationBaseUrl);
 
   useEffect(() => {
     const current = readAutomationBaseUrl();
@@ -83,6 +133,35 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
     }
   }, [automationBaseUrl]);
 
+  const callMonitoring = useCallback(async (path: string, init?: RequestInit) => {
+    try {
+      const response = await fetch(`${monitoringBaseUrl}${path}`, init);
+      const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string; message?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Request failed with ${response.status}`);
+      }
+
+      return payload;
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(
+          `Could not reach the monitoring service at ${monitoringBaseUrl}. Start monitoring-service and verify its URL/port.`,
+        );
+      }
+
+      throw error;
+    }
+  }, [monitoringBaseUrl]);
+
+  const loadFailedMonitoringJobs = useCallback(async () => {
+    const payload = (await callMonitoring("/jobs")) as MonitoringJobsPayload;
+    const failedJobs = (payload.jobs || [])
+      .filter((job) => job.status === "failed")
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    setFailedMonitoringJobs(failedJobs);
+  }, [callMonitoring]);
+
   useEffect(() => {
     async function loadEbayStatus() {
       setBusyAction("ebay-status");
@@ -100,6 +179,12 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
 
     void loadEbayStatus();
   }, [callAutomation]);
+
+  useEffect(() => {
+    void loadFailedMonitoringJobs().catch(() => {
+      setFailedMonitoringJobs([]);
+    });
+  }, [loadFailedMonitoringJobs]);
 
   useEffect(() => {
     if (sessionUser.role !== "admin") {
@@ -140,6 +225,92 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
       const message = error instanceof Error ? error.message : "Health check failed";
       setHealth({ ok: false, message });
       setToast(message);
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function runMonitoringNow() {
+    setBusyAction("monitor-run");
+
+    try {
+      const payload = (await callMonitoring("/monitor/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })) as MonitorRunPayload;
+
+      const monitor = payload?.monitor;
+
+      if (!monitor?.ok) {
+        const reason = monitor?.reason || monitor?.error || "Monitoring run failed.";
+        setToast(reason);
+        return;
+      }
+
+      setToast(
+        `Monitoring checked ${monitor.checkedListings || 0} listings, detected ${monitor.soldDetectedCount || 0} sold, queued ${monitor.queuedRemovalJobs || 0} removals.`,
+      );
+      await loadFailedMonitoringJobs();
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Monitoring run failed.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function retryFailedMonitoringJobs() {
+    setBusyAction("monitor-retry-failed");
+
+    try {
+      const jobsPayload = (await callMonitoring("/jobs")) as MonitoringJobsPayload;
+      const failedJobs = (jobsPayload.jobs || []).filter((job) => job.status === "failed");
+
+      if (failedJobs.length === 0) {
+        setFailedMonitoringJobs([]);
+        setToast("No failed monitoring jobs to retry.");
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        failedJobs.map((job) =>
+          callMonitoring(`/jobs/${job.id}/retry`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }),
+        ),
+      );
+
+      const succeeded = results.filter((result) => result.status === "fulfilled").length;
+      const failed = results.length - succeeded;
+
+      setToast(`Retried ${succeeded}/${results.length} failed jobs${failed ? ` (${failed} failed)` : ""}.`);
+      await loadFailedMonitoringJobs();
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not retry failed monitoring jobs.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function clearFailedMonitoringJobs() {
+    setBusyAction("monitor-clear-failed");
+
+    try {
+      const payload = (await callMonitoring("/jobs/clear-failed", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })) as ClearFailedJobsPayload;
+
+      await loadFailedMonitoringJobs();
+      setToast(`Cleared ${payload.removed || 0} failed jobs.`);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not clear failed monitoring jobs.");
     } finally {
       setBusyAction(null);
     }
@@ -487,6 +658,66 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
               className={`mt-4 rounded-[1.2rem] px-4 py-3 text-sm ${health.ok ? "bg-pine/10 text-pine" : "bg-rose/10 text-rose"}`}
             >
               {health.message}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="rounded-[2rem] border border-white/80 bg-white/85 p-5 shadow-card">
+          <p className="text-xs font-medium uppercase tracking-[0.28em] text-clay">Monitoring service</p>
+          <h2 className="mt-2 text-xl font-semibold text-ink">Run and recover monitoring jobs</h2>
+          <p className="mt-2 text-sm leading-6 text-ink/70">
+            Monitoring URL: <span className="font-mono">{monitoringBaseUrl}</span>
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={runMonitoringNow}
+              disabled={busyAction !== null}
+              className="rounded-[1.2rem] bg-ink px-4 py-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-ink/40"
+            >
+              {busyAction === "monitor-run" ? "Running..." : "Run Monitoring Now"}
+            </button>
+            <button
+              type="button"
+              onClick={retryFailedMonitoringJobs}
+              disabled={busyAction !== null}
+              className="rounded-[1.2rem] border border-ink/10 bg-white px-4 py-4 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:text-ink/40"
+            >
+              {busyAction === "monitor-retry-failed" ? "Retrying..." : "Retry Failed Jobs"}
+            </button>
+            <button
+              type="button"
+              onClick={clearFailedMonitoringJobs}
+              disabled={busyAction !== null || failedMonitoringJobs.length === 0}
+              className="rounded-[1.2rem] border border-rose/30 bg-rose/10 px-4 py-4 text-sm font-semibold text-rose disabled:cursor-not-allowed disabled:text-rose/40"
+            >
+              {busyAction === "monitor-clear-failed" ? "Clearing..." : "Clear Failed Jobs"}
+            </button>
+          </div>
+          {failedMonitoringJobs.length > 0 ? (
+            <div className="mt-4 overflow-x-auto rounded-[1rem] border border-ink/10 bg-sand/40">
+              <table className="min-w-full text-left text-xs text-ink/80">
+                <thead className="bg-white/80 text-[11px] uppercase tracking-[0.12em] text-ink/60">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Listing</th>
+                    <th className="px-3 py-2 font-semibold">Platform</th>
+                    <th className="px-3 py-2 font-semibold">Attempts</th>
+                    <th className="px-3 py-2 font-semibold">Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {failedMonitoringJobs.map((job) => (
+                    <tr key={job.id} className="border-t border-ink/10">
+                      <td className="px-3 py-2 font-mono">{job.listingId ? job.listingId.slice(0, 8) : "Unknown"}</td>
+                      <td className="px-3 py-2 uppercase">{job.targetPlatform || "unknown"}</td>
+                      <td className="px-3 py-2">{job.attempts || 0}</td>
+                      <td className="max-w-[320px] truncate px-3 py-2" title={job.error || ""}>
+                        {job.error || "Unknown error"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : null}
         </div>

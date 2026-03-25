@@ -100,3 +100,18 @@ export async function retryJob(jobId) {
     error: null,
   });
 }
+
+export async function clearFailedJobs() {
+  const jobs = await readAll();
+  const keptJobs = jobs.filter((job) => job.status !== "failed");
+  const removed = jobs.length - keptJobs.length;
+
+  if (removed > 0) {
+    await writeAll(keptJobs);
+  }
+
+  return {
+    removed,
+    remaining: keptJobs.length,
+  };
+}

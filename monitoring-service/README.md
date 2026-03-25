@@ -1,8 +1,13 @@
 # Monitoring Service
 
-Standalone queue-based service for cross-platform listing reconciliation.
+Standalone queue-based service for cross-platform listing reconciliation and availability monitoring.
 
-When a sale is detected on one platform, this service queues removal jobs for the other platforms and processes them in the background with retries.
+When a sale is detected on one platform, this service:
+
+- marks the dashboard listing as sold
+- marks other marketplaces as `remove_pending`
+- queues removal jobs for the other platforms
+- processes removal jobs in the background with retries
 
 ## Why Separate
 
@@ -36,7 +41,9 @@ Default URL: `http://localhost:3010`
 - `GET /health`
 - `GET /jobs`
 - `POST /jobs/:id/retry`
+- `POST /jobs/clear-failed`
 - `POST /events/sale-detected`
+- `POST /monitor/run`
 
 ### `POST /events/sale-detected` payload
 
@@ -52,14 +59,26 @@ Default URL: `http://localhost:3010`
 
 The service will queue removal jobs for every URL present except the sold platform.
 
+## Automatic Monitoring
+
+Every `MONITORING_INTERVAL_MS` (default 300000 = 5 minutes), the service:
+
+1. Queries listings from InstantDB.
+2. Checks each active marketplace URL for availability.
+3. If a listing page is sold/unavailable:
+4. Marks the listing `status="sold"` in the dashboard.
+5. Marks sold platform state as `sold` and all other platform states as `remove_pending`.
+6. Queues cross-platform removal jobs.
+
+The worker then executes queued removals using `AUTOMATION_BASE_URL`:
+
+- `POST /poshmark/remove`
+- `POST /depop/remove`
+- `POST /ebay/remove`
+
 ## Current Status
 
 - Job queue persistence is implemented (`monitoring-service/data/removal-jobs.json`).
 - Retry with exponential backoff is implemented.
-- Platform removal adapters are stubbed and currently return `not implemented`.
-
-Next step is wiring real platform deletion/end-listing APIs in:
-
-- `src/platforms/poshmark.js`
-- `src/platforms/depop.js`
-- `src/platforms/ebay.js`
+- Automatic sale detection monitor is implemented.
+- Dashboard sold/remove state sync is implemented through InstantDB admin writes.

@@ -1,6 +1,9 @@
+import { removeViaAutomation } from "./remove-via-automation.js";
+
 export async function removeDepopListing({ listingId, url }) {
-  return {
-    ok: false,
-    error: `Depop removal not implemented yet (listingId=${listingId}, url=${url})`,
-  };
+  return removeViaAutomation({
+    platform: "depop",
+    listingId,
+    url,
+  });
 }

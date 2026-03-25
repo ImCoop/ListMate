@@ -2,8 +2,9 @@ import cors from "cors";
 import express from "express";
 
 import { loadLocalEnv, readConfig } from "./env.js";
+import { runMonitoringCycle } from "./monitor.js";
 import { buildRemovalJobsFromSaleEvent, processJob } from "./reconciler.js";
-import { claimDueJob, enqueueJobs, listJobs, retryJob } from "./store/job-store.js";
+import { claimDueJob, clearFailedJobs, enqueueJobs, listJobs, retryJob } from "./store/job-store.js";
 
 loadLocalEnv();
 
@@ -33,6 +34,8 @@ function validateSaleEvent(payload) {
 }
 
 let workerBusy = false;
+let monitorBusy = false;
+let lastMonitorResult = null;
 
 async function tickWorker() {
   if (workerBusy) {
@@ -54,10 +57,37 @@ async function tickWorker() {
   }
 }
 
+async function tickMonitor() {
+  if (monitorBusy) {
+    return;
+  }
+
+  monitorBusy = true;
+
+  try {
+    const result = await runMonitoringCycle(config);
+    lastMonitorResult = {
+      ...result,
+      checkedAt: Date.now(),
+    };
+  } catch (error) {
+    lastMonitorResult = {
+      ok: false,
+      skipped: false,
+      checkedAt: Date.now(),
+      error: error instanceof Error ? error.message : "Monitoring cycle failed",
+    };
+  } finally {
+    monitorBusy = false;
+  }
+}
+
 app.get("/health", (_request, response) => {
   response.json({
     ok: true,
     service: "monitoring-service",
+    monitorIntervalMs: config.monitorIntervalMs,
+    lastMonitorResult,
   });
 });
 
@@ -81,6 +111,24 @@ app.post("/jobs/:id/retry", async (request, response) => {
   response.json({
     ok: true,
     job,
+  });
+});
+
+app.post("/jobs/clear-failed", async (_request, response) => {
+  const result = await clearFailedJobs();
+
+  response.json({
+    ok: true,
+    ...result,
+  });
+});
+
+app.post("/monitor/run", async (_request, response) => {
+  await tickMonitor();
+
+  response.json({
+    ok: true,
+    monitor: lastMonitorResult,
   });
 });
 
@@ -116,17 +164,26 @@ const workerInterval = setInterval(() => {
   void tickWorker();
 }, config.pollIntervalMs);
 
+const monitorInterval = setInterval(() => {
+  void tickMonitor();
+}, config.monitorIntervalMs);
+
+void tickMonitor();
+
 process.on("SIGINT", () => {
   clearInterval(workerInterval);
+  clearInterval(monitorInterval);
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
   clearInterval(workerInterval);
+  clearInterval(monitorInterval);
   process.exit(0);
 });
 
 app.listen(config.port, () => {
   console.log(`Monitoring service listening on http://localhost:${config.port}`);
   console.log(`Worker polling every ${config.pollIntervalMs}ms`);
+  console.log(`Listing monitor polling every ${config.monitorIntervalMs}ms`);
 });
