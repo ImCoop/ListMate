@@ -123,3 +123,31 @@ export const sessionCookie = {
   name: SESSION_COOKIE_NAME,
   maxAgeSeconds: SESSION_TTL_SECONDS,
 };
+
+function isSecureRequest(request: Request) {
+  if (process.env.NODE_ENV !== "production") {
+    return false;
+  }
+
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0]?.trim() === "https";
+  }
+
+  try {
+    return new URL(request.url).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function getSessionCookieOptions(request: Request, maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: isSecureRequest(request),
+    path: "/",
+    maxAge,
+  };
+}

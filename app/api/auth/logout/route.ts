@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { sessionCookie } from "@/lib/server-auth";
+import { getSessionCookieOptions, sessionCookie } from "@/lib/server-auth";
 
-export async function POST() {
+export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true });
 
-  response.cookies.set(sessionCookie.name, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
+  response.cookies.set(sessionCookie.name, "", getSessionCookieOptions(request, 0));
 
   return response;
 }

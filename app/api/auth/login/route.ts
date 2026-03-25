@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { ensureDefaultAdminUser, findUserByUsername } from "@/lib/instant-admin";
 import { verifyPassword } from "@/lib/password";
-import { createSessionToken, sessionCookie } from "@/lib/server-auth";
+import { createSessionToken, getSessionCookieOptions, sessionCookie } from "@/lib/server-auth";
 
 export async function POST(request: Request) {
   try {
@@ -39,13 +39,7 @@ export async function POST(request: Request) {
       },
     });
 
-    response.cookies.set(sessionCookie.name, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: sessionCookie.maxAgeSeconds,
-    });
+    response.cookies.set(sessionCookie.name, token, getSessionCookieOptions(request, sessionCookie.maxAgeSeconds));
 
     return response;
   } catch (error) {
