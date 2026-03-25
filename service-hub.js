@@ -1,46 +1,15 @@
 #!/usr/bin/env node
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
 const { spawn } = require("node:child_process");
-const readline = require("node:readline");
 
-const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
-const AUTOMATION_URL = (process.env.AUTOMATION_URL || "http://localhost:3001").replace(/\/$/, "");
-const MONITORING_URL = (process.env.MONITORING_URL || "http://localhost:3010").replace(/\/$/, "");
-
-const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 4000);
-const STATUS_INTERVAL_MS = Number(process.env.STATUS_INTERVAL_MS || 5000);
-const STARTUP_DELAY_MS = Number(process.env.STARTUP_DELAY_MS || 800);
-
-const isProd = process.argv.includes("--prod");
-
-const FRONTEND_CMD = process.env.FRONTEND_CMD || (isProd ? "npm run start" : "npm run dev");
-const AUTOMATION_CMD = process.env.AUTOMATION_CMD || "npm --prefix automation-service run start";
-const MONITORING_CMD = process.env.MONITORING_CMD || "npm --prefix monitoring-service run start";
-
-const services = [
-  {
-    key: "frontend",
-    name: "Frontend",
-    command: FRONTEND_CMD,
-    healthUrl: FRONTEND_URL,
-    color: 36,
-  },
-  {
-    key: "automation",
-    name: "Automation",
-    command: AUTOMATION_CMD,
-    healthUrl: `${AUTOMATION_URL}/health`,
-    color: 35,
-  },
-  {
-    key: "monitoring",
-    name: "Monitoring",
-    command: MONITORING_CMD,
-    healthUrl: `${MONITORING_URL}/health`,
-    color: 33,
-  },
-];
+const args = process.argv.slice(2);
+const isProd = args.includes("--prod");
+const configArgIndex = args.indexOf("--config");
+const configPathArg = configArgIndex >= 0 ? args[configArgIndex + 1] : null;
+const configPath = path.resolve(process.cwd(), configPathArg || "service-instance.config.json");
 
 function colorize(text, colorCode) {
   if (!process.stdout.isTTY) {
@@ -50,15 +19,141 @@ function colorize(text, colorCode) {
   return `\u001b[${colorCode}m${text}\u001b[0m`;
 }
 
-function timestamp() {
-  const now = new Date();
-  return now.toLocaleTimeString();
+function clearScreen() {
+  if (process.stdout.isTTY) {
+    process.stdout.write("\u001bc");
+  } else {
+    console.log("");
+  }
 }
 
-function prefixLine(service, line) {
-  const label = colorize(service.name.padEnd(10, " "), service.color);
-  return `[${timestamp()}] ${label} | ${line}`;
+function padRight(text, width) {
+  const value = String(text);
+  if (value.length >= width) {
+    return value;
+  }
+
+  return value + " ".repeat(width - value.length);
 }
+
+function truncate(text, max) {
+  const value = String(text || "");
+  if (value.length <= max) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function normalizeBaseUrl(value) {
+  return String(value || "").trim().replace(/\/$/, "");
+}
+
+function loadConfig(targetPath) {
+  const raw = fs.readFileSync(targetPath, "utf8");
+  const parsed = JSON.parse(raw);
+
+  const host = parsed?.network?.host || "127.0.0.1";
+  const frontendPort = Number(parsed?.ports?.frontend || 3000);
+  const automationPort = Number(parsed?.ports?.automation || 3001);
+  const monitoringPort = Number(parsed?.ports?.monitoring || 3010);
+
+  const frontendBaseUrl = normalizeBaseUrl(parsed?.urls?.frontend || `http://${host}:${frontendPort}`);
+  const automationBaseUrl = normalizeBaseUrl(parsed?.urls?.automation || `http://${host}:${automationPort}`);
+  const monitoringBaseUrl = normalizeBaseUrl(parsed?.urls?.monitoring || `http://${host}:${monitoringPort}`);
+
+  return {
+    instanceName: parsed?.instanceName || "listmate-instance",
+    timing: {
+      requestTimeoutMs: Number(parsed?.timing?.requestTimeoutMs || 4000),
+      statusIntervalMs: Number(parsed?.timing?.statusIntervalMs || 5000),
+      startupDelayMs: Number(parsed?.timing?.startupDelayMs || 800),
+    },
+    frontend: {
+      cwd: path.resolve(process.cwd(), parsed?.services?.frontend?.cwd || "."),
+      command: parsed?.services?.frontend?.command || (isProd ? "npm run start" : "npm run dev"),
+      healthUrl: frontendBaseUrl,
+      env: {
+        PORT: String(frontendPort),
+        NEXT_PUBLIC_AUTOMATION_BASE_URL: automationBaseUrl,
+        ...(parsed?.services?.frontend?.env || {}),
+      },
+    },
+    automation: {
+      cwd: path.resolve(process.cwd(), parsed?.services?.automation?.cwd || "automation-service"),
+      command: parsed?.services?.automation?.command || "npm run start",
+      healthUrl: `${automationBaseUrl}/health`,
+      env: {
+        AUTOMATION_PORT: String(automationPort),
+        PORT: String(automationPort),
+        AUTOMATION_STORAGE_STATE_PATH:
+          parsed?.services?.automation?.storageStatePath || "storageState.json",
+        EBAY_TOKENS_PATH: parsed?.services?.automation?.ebayTokensPath || "ebay-tokens.json",
+        ...(parsed?.services?.automation?.env || {}),
+      },
+    },
+    monitoring: {
+      cwd: path.resolve(process.cwd(), parsed?.services?.monitoring?.cwd || "monitoring-service"),
+      command: parsed?.services?.monitoring?.command || "npm run start",
+      healthUrl: `${monitoringBaseUrl}/health`,
+      env: {
+        MONITORING_PORT: String(monitoringPort),
+        AUTOMATION_BASE_URL: automationBaseUrl,
+        MONITORING_JOB_STORE_PATH:
+          parsed?.services?.monitoring?.jobStorePath || "data/removal-jobs.json",
+        ...(parsed?.services?.monitoring?.env || {}),
+      },
+    },
+  };
+}
+
+let loadedConfig = null;
+
+try {
+  loadedConfig = loadConfig(configPath);
+} catch (error) {
+  console.error(
+    colorize(
+      `Failed to load config file at ${configPath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+      31,
+    ),
+  );
+  process.exit(1);
+}
+
+const REQUEST_TIMEOUT_MS = loadedConfig.timing.requestTimeoutMs;
+const STATUS_INTERVAL_MS = loadedConfig.timing.statusIntervalMs;
+const STARTUP_DELAY_MS = loadedConfig.timing.startupDelayMs;
+
+const services = [
+  {
+    key: "frontend",
+    name: "Frontend",
+    color: 36,
+    command: loadedConfig.frontend.command,
+    cwd: loadedConfig.frontend.cwd,
+    env: loadedConfig.frontend.env,
+    healthUrl: loadedConfig.frontend.healthUrl,
+  },
+  {
+    key: "automation",
+    name: "Automation",
+    color: 35,
+    command: loadedConfig.automation.command,
+    cwd: loadedConfig.automation.cwd,
+    env: loadedConfig.automation.env,
+    healthUrl: loadedConfig.automation.healthUrl,
+  },
+  {
+    key: "monitoring",
+    name: "Monitoring",
+    color: 33,
+    command: loadedConfig.monitoring.command,
+    cwd: loadedConfig.monitoring.cwd,
+    env: loadedConfig.monitoring.env,
+    healthUrl: loadedConfig.monitoring.healthUrl,
+  },
+];
 
 function printLine(service, line) {
   const cleaned = String(line || "").replace(/\r/g, "").trimEnd();
@@ -109,37 +204,15 @@ async function checkServiceHealth(service) {
   }
 }
 
-function clearScreen() {
-  if (process.stdout.isTTY) {
-    process.stdout.write("\u001bc");
-  } else {
-    console.log("");
-  }
-}
-
-function padRight(text, width) {
-  const value = String(text);
-  if (value.length >= width) {
-    return value;
-  }
-
-  return value + " ".repeat(width - value.length);
-}
-
-function truncate(text, max) {
-  const value = String(text || "");
-  if (value.length <= max) {
-    return value;
-  }
-
-  return `${value.slice(0, Math.max(0, max - 1))}…`;
-}
-
 function spawnService(service) {
   const child = spawn(service.command, {
     shell: true,
+    cwd: service.cwd,
     stdio: ["ignore", "pipe", "pipe"],
-    env: process.env,
+    env: {
+      ...process.env,
+      ...service.env,
+    },
   });
 
   service.child = child;
@@ -193,7 +266,8 @@ async function renderDashboard() {
       : colorize(`${checks.length - upCount} service(s) offline`, 31);
 
   const lines = [
-    "ListMate Service Hub",
+    `ListMate Service Hub (${loadedConfig.instanceName})`,
+    `Config: ${configPath}`,
     summary,
     `Checked: ${new Date().toLocaleString()}`,
     "",
@@ -210,6 +284,8 @@ async function renderDashboard() {
     lines.push(
       `${padRight(service.name, 11)} process:${padRight(processState, 13)} health:${padRight(healthState, 8)} ${padRight(latency, 8)} ${health.detail}`,
     );
+    lines.push(`  cmd: ${service.command}`);
+    lines.push(`  cwd: ${service.cwd}`);
     lines.push(`  url: ${service.healthUrl}`);
     if (service.lastLog) {
       lines.push(`  last: ${truncate(service.lastLog, 120)}`);
@@ -265,9 +341,5 @@ process.on("SIGTERM", () => {
   void shutdown();
 });
 
-readline.emitKeypressEvents(process.stdin);
-if (process.stdin.isTTY) {
-  process.stdin.setRawMode(false);
-}
-
 void startAll();
+

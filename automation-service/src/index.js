@@ -17,7 +17,7 @@ import { loadLocalEnv } from "./env.js";
 loadLocalEnv();
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.AUTOMATION_PORT || process.env.PORT || 3001);
 
 app.use(
   cors({

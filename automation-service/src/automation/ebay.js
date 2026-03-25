@@ -12,7 +12,9 @@ const EBAY_AUTH_URL = "https://auth.ebay.com/oauth2/authorize";
 const EBAY_IDENTITY_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const EBAY_API_ROOT = "https://api.ebay.com";
 const EBAY_TRADING_URL = "https://api.ebay.com/ws/api.dll";
-const EBAY_TOKENS_PATH = path.resolve(process.cwd(), "ebay-tokens.json");
+const EBAY_TOKENS_PATH = process.env.EBAY_TOKENS_PATH
+  ? path.resolve(process.cwd(), process.env.EBAY_TOKENS_PATH)
+  : path.resolve(process.cwd(), "ebay-tokens.json");
 const USER_SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.inventory",
   "https://api.ebay.com/oauth/api_scope/sell.account",

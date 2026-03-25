@@ -2,8 +2,11 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const STORE_PATH = path.join(DATA_DIR, "removal-jobs.json");
+const DEFAULT_DATA_DIR = path.resolve(process.cwd(), "data");
+const STORE_PATH = process.env.MONITORING_JOB_STORE_PATH
+  ? path.resolve(process.cwd(), process.env.MONITORING_JOB_STORE_PATH)
+  : path.join(DEFAULT_DATA_DIR, "removal-jobs.json");
+const DATA_DIR = path.dirname(STORE_PATH);
 
 async function ensureStoreFile() {
   await fs.mkdir(DATA_DIR, { recursive: true });

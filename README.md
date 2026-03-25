@@ -200,3 +200,44 @@ NEXT_PUBLIC_AUTOMATION_BASE_URL=https://your-automation-host
 - Rotate the default admin password immediately after first login.
 - Keep secrets out of Git; use `.env.local` / deployment environment variables.
 - For phone testing, point `NEXT_PUBLIC_AUTOMATION_BASE_URL` to your desktop LAN IP.
+
+## Multi-Instance Service Config
+
+Use a single config file to run frontend + automation + monitoring together:
+
+- Default config: `service-instance.config.json`
+- Template for new instances: `service-instance.config.template.json`
+
+### Start all services from one window
+
+```bash
+npm run hub
+```
+
+Production frontend mode:
+
+```bash
+npm run hub:prod
+```
+
+Status-only dashboard using the same config:
+
+```bash
+npm run status
+node service-status.js --once
+```
+
+### Run multiple instances on one machine
+
+1. Copy the template into per-instance files (for example `service-instance.a.json`, `service-instance.b.json`).
+2. Assign unique frontend/automation/monitoring ports in each file.
+3. Assign unique local state file paths per instance:
+   - `services.automation.storageStatePath`
+   - `services.automation.ebayTokensPath`
+   - `services.monitoring.jobStorePath`
+4. Start each instance with its config:
+
+```bash
+node service-hub.js --config service-instance.a.json --prod
+node service-hub.js --config service-instance.b.json --prod
+```

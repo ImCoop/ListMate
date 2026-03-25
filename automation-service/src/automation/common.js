@@ -2,7 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
 
-const STORAGE_STATE_PATH = path.resolve(process.cwd(), "storageState.json");
+const STORAGE_STATE_PATH = process.env.AUTOMATION_STORAGE_STATE_PATH
+  ? path.resolve(process.cwd(), process.env.AUTOMATION_STORAGE_STATE_PATH)
+  : path.resolve(process.cwd(), "storageState.json");
 const TMP_ROOT = path.resolve(process.cwd(), "tmp");
 
 let browserPromise;

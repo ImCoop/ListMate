@@ -1,0 +1,42 @@
+{
+  "instanceName": "listmate-instance-1",
+  "network": {
+    "host": "127.0.0.1"
+  },
+  "ports": {
+    "frontend": 3000,
+    "automation": 3001,
+    "monitoring": 3010
+  },
+  "urls": {
+    "frontend": "http://127.0.0.1:3000",
+    "automation": "http://127.0.0.1:3001",
+    "monitoring": "http://127.0.0.1:3010"
+  },
+  "timing": {
+    "requestTimeoutMs": 4000,
+    "statusIntervalMs": 5000,
+    "startupDelayMs": 800
+  },
+  "services": {
+    "frontend": {
+      "cwd": ".",
+      "command": "npm run start",
+      "env": {}
+    },
+    "automation": {
+      "cwd": "automation-service",
+      "command": "npm run start",
+      "storageStatePath": "storageState.instance-1.json",
+      "ebayTokensPath": "ebay-tokens.instance-1.json",
+      "env": {}
+    },
+    "monitoring": {
+      "cwd": "monitoring-service",
+      "command": "npm run start",
+      "jobStorePath": "data/removal-jobs.instance-1.json",
+      "env": {}
+    }
+  }
+}
+
