@@ -25,7 +25,7 @@ const MARKETPLACE_TAXONOMY = {
         {
           name: "Tops",
           subcategories: [
-            { name: "T-Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
             { name: "Tank Top", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
             { name: "Polo", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
             { name: "Button-Up Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
@@ -76,7 +76,7 @@ const MARKETPLACE_TAXONOMY = {
         {
           name: "Tops",
           subcategories: [
-            { name: "T-Shirt", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Shirt", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
             { name: "Blouse", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
             { name: "Tank Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
             { name: "Crop Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
@@ -295,7 +295,7 @@ function isEbayItemUrl(value: string) {
 
 const DEFAULT_GENDER: GenderName = "Women";
 const DEFAULT_CATEGORY_GROUP = getCategoryOptions(DEFAULT_GENDER)[0] || "Tops";
-const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "T-Shirt";
+const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "Shirt";
 const DEFAULT_SIZE = getSizeOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP, DEFAULT_SUBCATEGORY)[0] || "M";
 
 type FormState = {
