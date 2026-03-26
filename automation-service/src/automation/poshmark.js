@@ -15,7 +15,6 @@ import path from "node:path";
 const POSHMARK_CREATE_URL = "https://poshmark.com/sell";
 const POSHMARK_LOGIN_URL = "https://poshmark.com/login";
 const POSHMARK_CATEGORY_MAP_JSON_PATH = path.resolve(process.cwd(), "data", "poshmark-category-map.json");
-const POSHMARK_CATEGORY_LOG_PATH = path.resolve(process.cwd(), "data", "poshmark.txt");
 
 function normalizeCategoryKey(value) {
   return String(value || "").trim().toLowerCase();
@@ -55,40 +54,6 @@ function buildCategoryIndexFromJsonFile(raw) {
   return indexMap;
 }
 
-function buildCategoryIndexFromLogFile(raw) {
-  const indexMap = {};
-  const seen = {};
-  const lines = String(raw || "").split(/\r?\n/);
-  const pattern = /Scraping subcategory:\s*([^>]+)>\s*(.+)\s*$/i;
-
-  for (const line of lines) {
-    const match = line.match(pattern);
-    if (!match) {
-      continue;
-    }
-
-    const topName = normalizeCategoryKey(match[1]);
-    const leafName = normalizeCategoryKey(match[2]);
-    if (!topName || !leafName) {
-      continue;
-    }
-
-    if (!indexMap[topName]) {
-      indexMap[topName] = {};
-      seen[topName] = [];
-    }
-
-    if (leafName in indexMap[topName]) {
-      continue;
-    }
-
-    indexMap[topName][leafName] = seen[topName].length;
-    seen[topName].push(leafName);
-  }
-
-  return indexMap;
-}
-
 function loadPoshmarkCategoryIndexMap() {
   try {
     if (fs.existsSync(POSHMARK_CATEGORY_MAP_JSON_PATH)) {
@@ -99,19 +64,7 @@ function loadPoshmarkCategoryIndexMap() {
       }
     }
   } catch {
-    // Fall through to txt parser.
-  }
-
-  try {
-    if (fs.existsSync(POSHMARK_CATEGORY_LOG_PATH)) {
-      const raw = fs.readFileSync(POSHMARK_CATEGORY_LOG_PATH, "utf8");
-      const map = buildCategoryIndexFromLogFile(raw);
-      if (Object.keys(map).length > 0) {
-        return map;
-      }
-    }
-  } catch {
-    // No usable scrape map.
+    // No usable json map.
   }
 
   return {};

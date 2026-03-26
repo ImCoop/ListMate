@@ -4,6 +4,7 @@ import clsx from "clsx";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import poshmarkCategoryMap from "@/automation-service/data/poshmark-category-map.json";
 import { LogoutButton } from "@/components/logout-button";
 import { getAutomationNetworkErrorMessage, readAutomationBaseUrl } from "@/lib/automation";
 import type { SessionUser } from "@/lib/auth-types";
@@ -17,119 +18,86 @@ import type {
   PoshmarkTopCategory,
 } from "@/lib/types";
 
-const MARKETPLACE_TAXONOMY = {
-  genders: [
-    {
-      name: "Men",
-      categories: [
-        {
-          name: "Tops",
-          subcategories: [
-            { name: "Shirts", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Tank Top", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Polo", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Button-Up Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Long Sleeve Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Hoodie", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Sweatshirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-          ],
-        },
-        {
-          name: "Bottoms",
-          subcategories: [
-            { name: "Jeans", sizeType: "waist", sizes: ["28", "29", "30", "31", "32", "33", "34", "36", "38", "40", "42", "44"] },
-            { name: "Pants", sizeType: "mixed", sizes: ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40"] },
-            { name: "Shorts", sizeType: "mixed", sizes: ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38"] },
-            { name: "Sweatpants", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Joggers", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
-          ],
-        },
-        {
-          name: "Outerwear",
-          subcategories: [
-            { name: "Jacket", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Coat", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-            { name: "Vest", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
-          ],
-        },
-        {
-          name: "Shoes",
-          subcategories: [
-            { name: "Sneakers", sizeType: "numeric", sizes: ["6", "7", "8", "9", "10", "11", "12", "13", "14", "15"] },
-            { name: "Boots", sizeType: "numeric", sizes: ["7", "8", "9", "10", "11", "12", "13", "14", "15"] },
-            { name: "Sandals", sizeType: "numeric", sizes: ["7", "8", "9", "10", "11", "12", "13"] },
-          ],
-        },
-        {
-          name: "Accessories",
-          subcategories: [
-            { name: "Hats", sizeType: "one", sizes: ["One Size"] },
-            { name: "Belts", sizeType: "waist", sizes: ["28", "30", "32", "34", "36", "38", "40", "42", "44"] },
-            { name: "Bags", sizeType: "one", sizes: ["One Size"] },
-          ],
-        },
-      ],
-    },
-    {
-      name: "Women",
-      categories: [
-        {
-          name: "Tops",
-          subcategories: [
-            { name: "Shirts", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Blouse", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Tank Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
-            { name: "Crop Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
-            { name: "Sweater", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Hoodie", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-          ],
-        },
-        {
-          name: "Bottoms",
-          subcategories: [
-            { name: "Jeans", sizeType: "numeric", sizes: ["00", "0", "2", "4", "6", "8", "10", "12", "14", "16"] },
-            { name: "Pants", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14"] },
-            { name: "Shorts", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12"] },
-            { name: "Leggings", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
-            { name: "Skirts", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12"] },
-          ],
-        },
-        {
-          name: "Dresses",
-          subcategories: [
-            { name: "Casual Dress", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14"] },
-            { name: "Formal Dress", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14", "16"] },
-          ],
-        },
-        {
-          name: "Outerwear",
-          subcategories: [
-            { name: "Jacket", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Coat", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-            { name: "Blazer", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
-          ],
-        },
-        {
-          name: "Shoes",
-          subcategories: [
-            { name: "Heels", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
-            { name: "Sneakers", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
-            { name: "Boots", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
-            { name: "Sandals", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] },
-          ],
-        },
-        {
-          name: "Accessories",
-          subcategories: [
-            { name: "Jewelry", sizeType: "one", sizes: ["One Size"] },
-            { name: "Bags", sizeType: "one", sizes: ["One Size"] },
-            { name: "Belts", sizeType: "mixed", sizes: ["XS", "S", "M", "L", "XL", "24", "26", "28", "30", "32", "34", "36"] },
-          ],
-        },
-      ],
-    },
-  ],
-} as const;
+type PoshmarkCategoryMap = {
+  categories: Array<{
+    topCategory: PoshmarkTopCategory;
+    subcategories: Array<{
+      subcategory: string;
+      index: number;
+    }>;
+  }>;
+};
+
+const POSHMARK_CATEGORY_TREE = (poshmarkCategoryMap as PoshmarkCategoryMap).categories;
+const APPAREL_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] as const;
+const BOTTOM_SIZES = [
+  "XXS",
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "XXL",
+  "Waist 26",
+  "Waist 28",
+  "Waist 30",
+  "Waist 32",
+  "Waist 34",
+  "Waist 36",
+  "Waist 38",
+  "Waist 40",
+] as const;
+const SHOE_SIZES = ["5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"] as const;
+const ONE_SIZE = ["One Size"] as const;
+const DEPOP_CATEGORY_BY_POSHMARK: Record<string, string> = {
+  "Women::Accessories": "Other",
+  "Women::Bags": "Bags",
+  "Women::Dresses": "Casual dresses",
+  "Women::Intimates & Sleepwear": "Pyjamas",
+  "Women::Jackets & Coats": "Jackets",
+  "Women::Jeans": "Jeans",
+  "Women::Jewelry": "Jewellery",
+  "Women::Makeup": "Other",
+  "Men::Accessories": "Other",
+  "Men::Bags": "Bags",
+  "Men::Jackets & Coats": "Jackets",
+  "Men::Jeans": "Jeans",
+  "Men::Pants": "Trousers",
+  "Men::Shirts": "Shirts",
+  "Men::Shoes": "Trainers",
+  "Men::Shorts": "Shorts",
+  "Kids::Accessories": "Other",
+  "Kids::Bottoms": "Trousers",
+  "Kids::Dresses": "Dresses",
+  "Kids::Jackets & Coats": "Jackets",
+  "Kids::Matching Sets": "Other",
+  "Kids::One Pieces": "Jumpsuits",
+  "Kids::Pajamas": "Pyjamas",
+  "Kids::Shirts & Tops": "T-shirts",
+  "Home::Accents": "Other",
+  "Home::Art": "Other",
+  "Home::Bath": "Other",
+  "Home::Bedding": "Other",
+  "Home::Design": "Other",
+  "Home::Dining": "Other",
+  "Home::Games": "Other",
+  "Home::Holiday": "Other",
+  "Pets::Dog": "Other",
+  "Pets::Cat": "Other",
+  "Pets::Bird": "Other",
+  "Pets::Fish": "Other",
+  "Pets::Reptile": "Other",
+  "Pets::Small Pets": "Other",
+  "Pets::Other": "Other",
+  "Electronics::Cameras, Photo & Video": "Other",
+  "Electronics::Computers, Laptops & Parts": "Other",
+  "Electronics::Cell Phones & Accessories": "Other",
+  "Electronics::Car Audio, Video & GPS": "Other",
+  "Electronics::Wearables": "Other",
+  "Electronics::Tablets & Accessories": "Other",
+  "Electronics::Video Games & Consoles": "Other",
+  "Electronics::VR, AR & Accessories": "Other",
+};
 
 const CONDITION_OPTIONS = [
   {
@@ -164,7 +132,6 @@ const CONDITION_OPTIONS = [
   },
 ] as const;
 
-type GenderName = (typeof MARKETPLACE_TAXONOMY.genders)[number]["name"];
 type ConditionOption = (typeof CONDITION_OPTIONS)[number];
 type ConditionValue = ConditionOption["value"];
 const PLATFORM_LABEL: Record<MarketplacePlatform, string> = {
@@ -183,108 +150,32 @@ const PLATFORM_STATE_KEY: Record<MarketplacePlatform, "poshmarkState" | "depopSt
   ebay: "ebayState",
 };
 
-const POPULAR_CATEGORY_OVERRIDE: Record<
-  GenderName,
-  { name: string; subcategories: { name: string; sizeType: "alpha" | "mixed" | "numeric" | "waist" | "one"; sizes: string[] }[] }[]
-> = {
-  Men: [
-    {
-      name: "Tops",
-      subcategories: [
-        { name: "Shirts", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-        { name: "Jackets & Coats", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
-      ],
-    },
-    {
-      name: "Bottoms",
-      subcategories: [
-        { name: "Jeans", sizeType: "waist", sizes: ["28", "29", "30", "31", "32", "33", "34", "36", "38", "40", "42", "44"] },
-        { name: "Pants", sizeType: "mixed", sizes: ["S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40"] },
-        { name: "Shorts", sizeType: "mixed", sizes: ["S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38"] },
-      ],
-    },
-    {
-      name: "Shoes",
-      subcategories: [{ name: "Shoes", sizeType: "numeric", sizes: ["7", "8", "9", "10", "11", "12", "13", "14"] }],
-    },
-    {
-      name: "Accessories",
-      subcategories: [
-        { name: "Accessories", sizeType: "one", sizes: ["One Size"] },
-        { name: "Bags", sizeType: "one", sizes: ["One Size"] },
-      ],
-    },
-  ],
-  Women: [
-    {
-      name: "Tops",
-      subcategories: [
-        { name: "Shirts", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-        { name: "Intimates & Sleepwear", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
-      ],
-    },
-    {
-      name: "Bottoms",
-      subcategories: [{ name: "Jeans", sizeType: "numeric", sizes: ["00", "0", "2", "4", "6", "8", "10", "12", "14", "16"] }],
-    },
-    {
-      name: "Dresses",
-      subcategories: [{ name: "Dresses", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14"] }],
-    },
-    {
-      name: "Outerwear",
-      subcategories: [{ name: "Jackets & Coats", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] }],
-    },
-    {
-      name: "Shoes",
-      subcategories: [{ name: "Shoes", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] }],
-    },
-    {
-      name: "Accessories",
-      subcategories: [
-        { name: "Accessories", sizeType: "one", sizes: ["One Size"] },
-        { name: "Bags", sizeType: "one", sizes: ["One Size"] },
-        { name: "Jewelry", sizeType: "one", sizes: ["One Size"] },
-        { name: "Makeup", sizeType: "one", sizes: ["One Size"] },
-      ],
-    },
-  ],
-};
-
-function getGenderRecord(gender: GenderName) {
-  return MARKETPLACE_TAXONOMY.genders.find((entry) => entry.name === gender) || MARKETPLACE_TAXONOMY.genders[0];
+function getTopCategoryOptions() {
+  return POSHMARK_CATEGORY_TREE.map((entry) => entry.topCategory);
 }
 
-function getCategoryRecords(gender: GenderName) {
-  const override = POPULAR_CATEGORY_OVERRIDE[gender];
-  return override?.length ? override : getGenderRecord(gender).categories;
+function getSubcategoryOptions(topCategory: PoshmarkTopCategory) {
+  return POSHMARK_CATEGORY_TREE.find((entry) => entry.topCategory === topCategory)?.subcategories.map((entry) => entry.subcategory) || [];
 }
 
-function getSubcategoryRecords(gender: GenderName, categoryGroup: string) {
-  const category = getCategoryRecords(gender).find((entry) => entry.name === categoryGroup);
-  return category?.subcategories || getCategoryRecords(gender)[0]?.subcategories || [];
-}
-
-function getCategoryOptions(gender: GenderName) {
-  return getCategoryRecords(gender).map((entry) => entry.name);
-}
-
-function getSubcategoryOptions(gender: GenderName, categoryGroup: string) {
-  return getSubcategoryRecords(gender, categoryGroup).map((entry) => entry.name);
-}
-
-function getSizeOptions(gender: GenderName, categoryGroup: string, subcategory: string) {
-  const subcategoryRecord = getSubcategoryRecords(gender, categoryGroup).find((entry) => entry.name === subcategory);
-  const baseSizes = subcategoryRecord?.sizes || getSubcategoryRecords(gender, categoryGroup)[0]?.sizes || [];
-
-  if (gender === "Men" && categoryGroup === "Bottoms") {
-    const alphaSizes = ["S", "M", "L", "XL", "XXL"];
-    const waistSizes = baseSizes.filter((size) => /^\d+$/.test(size)).map((size) => `Waist ${size}`);
-    const unique = [...new Set([...alphaSizes, ...waistSizes])];
-    return unique;
+function getSizeOptions(topCategory: PoshmarkTopCategory, subcategory: string) {
+  if (topCategory === "Home" || topCategory === "Pets" || topCategory === "Electronics") {
+    return [...ONE_SIZE];
   }
 
-  return baseSizes;
+  if (/shoes?|boots?|sandals?|sneakers?|trainers?/i.test(subcategory)) {
+    return [...SHOE_SIZES];
+  }
+
+  if (/jeans|pants|shorts|bottoms?/i.test(subcategory)) {
+    return [...BOTTOM_SIZES];
+  }
+
+  if (/accessories|bags|jewelry|makeup|art|bath|bedding|dining|games|holiday|dog|cat|bird|fish|reptile|other/i.test(subcategory)) {
+    return [...ONE_SIZE];
+  }
+
+  return [...APPAREL_SIZES];
 }
 
 function getConditionRecord(value?: string | null) {
@@ -321,45 +212,26 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
   return size.replace(/^Waist\s+/i, "");
 }
 
-function mapCategoryForPlatform(category: string | undefined, platform: MarketplacePlatform) {
+function mapCategoryForPlatform(
+  topCategory: PoshmarkTopCategory | undefined,
+  category: string | undefined,
+  platform: MarketplacePlatform,
+) {
   if (!category) {
     return category;
   }
 
   const normalized = category.trim();
 
-  if (platform === "poshmark") {
-    if (/^men'?s shirts?$/i.test(normalized) || /^shirts?$/i.test(normalized)) {
-      return "Shirts";
-    }
-  }
-
   if (platform === "depop") {
-    const depopMap: Record<string, string> = {
-      "Jackets & Coats": "Jackets",
-      Pants: "Trousers",
-      Shoes: "Trainers",
-      "Intimates & Sleepwear": "Pyjamas",
-      Jewelry: "Jewellery",
-      Makeup: "Other",
-      Accessories: "Other",
-    };
-
-    return depopMap[normalized] || normalized;
+    const key = `${topCategory || ""}::${normalized}`;
+    return DEPOP_CATEGORY_BY_POSHMARK[key] || "Other";
   }
 
   return normalized;
 }
 
-function mapTopCategoryForPlatform(
-  topCategory: PoshmarkTopCategory | undefined,
-  category: string | undefined,
-  platform: MarketplacePlatform,
-) {
-  if (platform === "poshmark" && /^men'?s shirts?$/i.test(String(category || "").trim())) {
-    return "Men" as PoshmarkTopCategory;
-  }
-
+function mapTopCategoryForPlatform(topCategory: PoshmarkTopCategory | undefined) {
   return topCategory;
 }
 
@@ -379,10 +251,9 @@ function isEbayItemUrl(value: string) {
   return /https?:\/\/(www\.)?ebay\.[a-z.]+\/(itm\/|.*[?&]item=\d+)/i.test(value);
 }
 
-const DEFAULT_GENDER: GenderName = "Women";
-const DEFAULT_CATEGORY_GROUP = getCategoryOptions(DEFAULT_GENDER)[0] || "Tops";
-const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "Shirts";
-const DEFAULT_SIZE = getSizeOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP, DEFAULT_SUBCATEGORY)[0] || "M";
+const DEFAULT_TOP_CATEGORY: PoshmarkTopCategory = getTopCategoryOptions()[0] || "Women";
+const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_TOP_CATEGORY)[0] || "Accessories";
+const DEFAULT_SIZE = getSizeOptions(DEFAULT_TOP_CATEGORY, DEFAULT_SUBCATEGORY)[0] || "One Size";
 
 type FormState = {
   title: string;
@@ -392,7 +263,6 @@ type FormState = {
   imageUrls: string[];
   brand: string;
   size: string;
-  categoryGroup: string;
   category: string;
   topCategory: PoshmarkTopCategory;
   condition: ConditionValue;
@@ -406,9 +276,8 @@ const emptyForm: FormState = {
   imageUrls: [],
   brand: "",
   size: DEFAULT_SIZE,
-  categoryGroup: DEFAULT_CATEGORY_GROUP,
   category: DEFAULT_SUBCATEGORY,
-  topCategory: DEFAULT_GENDER as PoshmarkTopCategory,
+  topCategory: DEFAULT_TOP_CATEGORY,
   condition: "GOOD",
 };
 
@@ -446,14 +315,13 @@ function validateListingInput(input: ListingInput, form: FormState) {
     return "Add at least one photo so Depop and Poshmark can post reliably.";
   }
 
-  const gender = form.topCategory as GenderName;
-  const categoryOptions = getCategoryOptions(gender);
+  const topCategoryOptions = getTopCategoryOptions();
 
-  if (!categoryOptions.some((option) => option === form.categoryGroup)) {
-    return "Select a valid category group.";
+  if (!topCategoryOptions.some((option) => option === form.topCategory)) {
+    return "Select a valid top category.";
   }
 
-  const subcategoryOptions = getSubcategoryOptions(gender, form.categoryGroup);
+  const subcategoryOptions = getSubcategoryOptions(form.topCategory);
 
   if (!subcategoryOptions.some((option) => option === form.category)) {
     return "Select a valid subcategory.";
@@ -463,7 +331,7 @@ function validateListingInput(input: ListingInput, form: FormState) {
     return "Select a valid subcategory.";
   }
 
-  const allowedSizes = getSizeOptions(gender, form.categoryGroup, form.category);
+  const allowedSizes = getSizeOptions(form.topCategory, form.category);
 
   if (!input.size || !allowedSizes.some((size) => size === input.size)) {
     return "Select a valid size for the chosen subcategory.";
@@ -641,10 +509,9 @@ function NewListingSheet({
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const enableAiDescriptionUi = false;
-  const gender = form.topCategory as GenderName;
-  const categoryOptions = getCategoryOptions(gender);
-  const subcategoryOptions = getSubcategoryOptions(gender, form.categoryGroup);
-  const sizeOptions = getSizeOptions(gender, form.categoryGroup, form.category);
+  const topCategoryOptions = getTopCategoryOptions();
+  const subcategoryOptions = getSubcategoryOptions(form.topCategory);
+  const sizeOptions = getSizeOptions(form.topCategory, form.category);
 
   useEffect(() => {
     if (!isOpen) {
@@ -657,30 +524,19 @@ function NewListingSheet({
 
   useEffect(() => {
     setForm((current) => {
-      const nextCategoryOptions = getCategoryOptions(current.topCategory as GenderName);
-      const nextCategoryGroup = nextCategoryOptions.some((option) => option === current.categoryGroup)
-        ? current.categoryGroup
-        : nextCategoryOptions[0] || "";
-      const nextSubcategoryOptions = getSubcategoryOptions(current.topCategory as GenderName, nextCategoryGroup);
+      const nextSubcategoryOptions = getSubcategoryOptions(current.topCategory);
       const nextCategory = nextSubcategoryOptions.some((option) => option === current.category)
         ? current.category
         : nextSubcategoryOptions[0] || "";
-      const nextSizeOptions = getSizeOptions(current.topCategory as GenderName, nextCategoryGroup, nextCategory);
-      const nextSize = nextSizeOptions.some((size) => size === current.size)
-        ? current.size
-        : nextSizeOptions[0] || "";
+      const nextSizeOptions = getSizeOptions(current.topCategory, nextCategory);
+      const nextSize = nextSizeOptions.some((size) => size === current.size) ? current.size : nextSizeOptions[0] || "";
 
-      if (
-        nextCategoryGroup === current.categoryGroup &&
-        nextCategory === current.category &&
-        nextSize === current.size
-      ) {
+      if (nextCategory === current.category && nextSize === current.size) {
         return current;
       }
 
       return {
         ...current,
-        categoryGroup: nextCategoryGroup,
         category: nextCategory,
         size: nextSize,
       };
@@ -940,54 +796,20 @@ function NewListingSheet({
           </Field>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label="Gender">
+            <Field label="Category">
               <select
                 value={form.topCategory}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    topCategory: event.target.value as GenderName as PoshmarkTopCategory,
+                    topCategory: event.target.value as PoshmarkTopCategory,
                   }))
                 }
                 className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
               >
-                {MARKETPLACE_TAXONOMY.genders.map((genderOption) => (
-                  <option key={genderOption.name} value={genderOption.name}>
-                    {genderOption.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Category">
-              <select
-                value={form.categoryGroup}
-                onChange={(event) =>
-                  setForm((current) => {
-                    const nextCategoryGroup = event.target.value;
-                    const nextSubcategory = getSubcategoryOptions(
-                      current.topCategory as GenderName,
-                      nextCategoryGroup,
-                    )[0] || "";
-                    const nextSize = getSizeOptions(
-                      current.topCategory as GenderName,
-                      nextCategoryGroup,
-                      nextSubcategory,
-                    )[0] || "";
-
-                    return {
-                      ...current,
-                      categoryGroup: nextCategoryGroup,
-                      category: nextSubcategory,
-                      size: nextSize,
-                    };
-                  })
-                }
-                className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
-              >
-                {categoryOptions.map((categoryOption) => (
-                  <option key={categoryOption} value={categoryOption}>
-                    {categoryOption}
+                {topCategoryOptions.map((topCategoryOption) => (
+                  <option key={topCategoryOption} value={topCategoryOption}>
+                    {topCategoryOption}
                   </option>
                 ))}
               </select>
@@ -999,11 +821,7 @@ function NewListingSheet({
                 onChange={(event) =>
                   setForm((current) => {
                     const nextSubcategory = event.target.value;
-                    const nextSize = getSizeOptions(
-                      current.topCategory as GenderName,
-                      current.categoryGroup,
-                      nextSubcategory,
-                    )[0] || "";
+                    const nextSize = getSizeOptions(current.topCategory, nextSubcategory)[0] || "";
 
                     return {
                       ...current,
@@ -1021,17 +839,6 @@ function NewListingSheet({
                 ))}
               </select>
             </Field>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label="Brand">
-              <input
-                value={form.brand}
-                onChange={(event) => setForm((current) => ({ ...current, brand: event.target.value }))}
-                className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
-                placeholder="Carhartt"
-              />
-            </Field>
 
             <Field label="Size">
               <select
@@ -1046,7 +853,17 @@ function NewListingSheet({
                 ))}
               </select>
             </Field>
+          </div>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Brand">
+              <input
+                value={form.brand}
+                onChange={(event) => setForm((current) => ({ ...current, brand: event.target.value }))}
+                className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
+                placeholder="Carhartt"
+              />
+            </Field>
             <Field label="Condition">
               <select
                 value={form.condition}
@@ -1551,8 +1368,8 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           quantity: listing.quantity,
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
-          category: mapCategoryForPlatform(listing.category, platform),
-          topCategory: mapTopCategoryForPlatform(listing.topCategory, listing.category, platform),
+          category: mapCategoryForPlatform(listing.topCategory, listing.category, platform),
+          topCategory: mapTopCategoryForPlatform(listing.topCategory),
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,
         }),
