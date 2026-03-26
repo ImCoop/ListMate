@@ -328,6 +328,12 @@ function mapCategoryForPlatform(category: string | undefined, platform: Marketpl
 
   const normalized = category.trim();
 
+  if (platform === "poshmark") {
+    if (/^men'?s shirts?$/i.test(normalized) || /^shirts?$/i.test(normalized)) {
+      return "Shirts";
+    }
+  }
+
   if (platform === "depop") {
     const depopMap: Record<string, string> = {
       "Jackets & Coats": "Jackets",
