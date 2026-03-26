@@ -260,7 +260,11 @@ function mapCategoryForPlatform(
     return category;
   }
 
-  const trimmed = category.trim();
+  let trimmed = category.trim();
+
+  if (/^t-?shirt$/i.test(trimmed)) {
+    trimmed = "Shirt";
+  }
 
   if (platform === "poshmark" && /^shirt$/i.test(trimmed)) {
     return "Shirts";

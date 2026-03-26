@@ -134,28 +134,52 @@ async function selectCategory(page, topCategory, subcategory) {
   await page.locator(".dropdown__selector.dropdown__selector--select-tag").first().click();
   await page.waitForTimeout(500);
 
-  const topCategoryOption = page.getByText(String(topCategory || "Women"), { exact: true });
+  const resolvedTopCategory = String(topCategory || "Women");
+  const topCategoryCandidates = [
+    page.locator("a").filter({ hasText: resolvedTopCategory }).first(),
+    page.getByRole("link", { name: new RegExp(`^${escapeRegExp(resolvedTopCategory)}$`, "i") }).first(),
+    page.getByText(resolvedTopCategory, { exact: true }).first(),
+  ];
 
-  try {
-    await topCategoryOption.click({ timeout: 1500 });
-  } catch {
+  let selectedTopCategory = false;
+  for (const candidate of topCategoryCandidates) {
+    try {
+      if (await candidate.isVisible({ timeout: 1200 })) {
+        await candidate.click({ timeout: 2500 });
+        selectedTopCategory = true;
+        break;
+      }
+    } catch {
+      // Try next selector.
+    }
+  }
+
+  if (!selectedTopCategory) {
     await page.locator("a").nth(3).click();
   }
 
   await page.waitForTimeout(500);
 
   if (subcategory) {
-    const subcategoryOption = page.getByText(String(subcategory), { exact: true });
+    const resolvedSubcategory = String(subcategory);
+    const subcategoryCandidates = [
+      page.getByRole("listitem").filter({ hasText: resolvedSubcategory }).first(),
+      page.getByText(resolvedSubcategory, { exact: true }).first(),
+      page.getByText(new RegExp(escapeRegExp(resolvedSubcategory), "i")).first(),
+    ];
 
-    try {
-      await subcategoryOption.click({ timeout: 1500 });
-      return;
-    } catch {
-      // Fall back below.
+    for (const candidate of subcategoryCandidates) {
+      try {
+        if (await candidate.isVisible({ timeout: 1200 })) {
+          await candidate.click({ timeout: 2500 });
+          return;
+        }
+      } catch {
+        // Try next selector.
+      }
     }
 
-    const looseMatch = page.getByText(new RegExp(String(subcategory).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
-    await looseMatch.first().click();
+    throw new Error(`Unable to select Poshmark subcategory "${resolvedSubcategory}".`);
   }
 }
 
