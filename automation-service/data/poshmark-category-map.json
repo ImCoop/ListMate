@@ -1,0 +1,224 @@
+{
+  "generatedAt": "2026-03-26T21:44:48.303Z",
+  "source": "poshmark.txt",
+  "categories": [
+    {
+      "topCategory": "Women",
+      "subcategories": [
+        {
+          "subcategory": "Accessories",
+          "index": 0
+        },
+        {
+          "subcategory": "Bags",
+          "index": 1
+        },
+        {
+          "subcategory": "Dresses",
+          "index": 2
+        },
+        {
+          "subcategory": "Intimates & Sleepwear",
+          "index": 3
+        },
+        {
+          "subcategory": "Jackets & Coats",
+          "index": 4
+        },
+        {
+          "subcategory": "Jeans",
+          "index": 5
+        },
+        {
+          "subcategory": "Jewelry",
+          "index": 6
+        },
+        {
+          "subcategory": "Makeup",
+          "index": 7
+        }
+      ]
+    },
+    {
+      "topCategory": "Men",
+      "subcategories": [
+        {
+          "subcategory": "Accessories",
+          "index": 0
+        },
+        {
+          "subcategory": "Bags",
+          "index": 1
+        },
+        {
+          "subcategory": "Jackets & Coats",
+          "index": 2
+        },
+        {
+          "subcategory": "Jeans",
+          "index": 3
+        },
+        {
+          "subcategory": "Pants",
+          "index": 4
+        },
+        {
+          "subcategory": "Shirts",
+          "index": 5
+        },
+        {
+          "subcategory": "Shoes",
+          "index": 6
+        },
+        {
+          "subcategory": "Shorts",
+          "index": 7
+        }
+      ]
+    },
+    {
+      "topCategory": "Kids",
+      "subcategories": [
+        {
+          "subcategory": "Accessories",
+          "index": 0
+        },
+        {
+          "subcategory": "Bottoms",
+          "index": 1
+        },
+        {
+          "subcategory": "Dresses",
+          "index": 2
+        },
+        {
+          "subcategory": "Jackets & Coats",
+          "index": 3
+        },
+        {
+          "subcategory": "Matching Sets",
+          "index": 4
+        },
+        {
+          "subcategory": "One Pieces",
+          "index": 5
+        },
+        {
+          "subcategory": "Pajamas",
+          "index": 6
+        },
+        {
+          "subcategory": "Shirts & Tops",
+          "index": 7
+        }
+      ]
+    },
+    {
+      "topCategory": "Home",
+      "subcategories": [
+        {
+          "subcategory": "Accents",
+          "index": 0
+        },
+        {
+          "subcategory": "Art",
+          "index": 1
+        },
+        {
+          "subcategory": "Bath",
+          "index": 2
+        },
+        {
+          "subcategory": "Bedding",
+          "index": 3
+        },
+        {
+          "subcategory": "Design",
+          "index": 4
+        },
+        {
+          "subcategory": "Dining",
+          "index": 5
+        },
+        {
+          "subcategory": "Games",
+          "index": 6
+        },
+        {
+          "subcategory": "Holiday",
+          "index": 7
+        }
+      ]
+    },
+    {
+      "topCategory": "Pets",
+      "subcategories": [
+        {
+          "subcategory": "Dog",
+          "index": 0
+        },
+        {
+          "subcategory": "Cat",
+          "index": 1
+        },
+        {
+          "subcategory": "Bird",
+          "index": 2
+        },
+        {
+          "subcategory": "Fish",
+          "index": 3
+        },
+        {
+          "subcategory": "Reptile",
+          "index": 4
+        },
+        {
+          "subcategory": "Small Pets",
+          "index": 5
+        },
+        {
+          "subcategory": "Other",
+          "index": 6
+        }
+      ]
+    },
+    {
+      "topCategory": "Electronics",
+      "subcategories": [
+        {
+          "subcategory": "Cameras, Photo & Video",
+          "index": 0
+        },
+        {
+          "subcategory": "Computers, Laptops & Parts",
+          "index": 1
+        },
+        {
+          "subcategory": "Cell Phones & Accessories",
+          "index": 2
+        },
+        {
+          "subcategory": "Car Audio, Video & GPS",
+          "index": 3
+        },
+        {
+          "subcategory": "Wearables",
+          "index": 4
+        },
+        {
+          "subcategory": "Tablets & Accessories",
+          "index": 5
+        },
+        {
+          "subcategory": "Video Games & Consoles",
+          "index": 6
+        },
+        {
+          "subcategory": "VR, AR & Accessories",
+          "index": 7
+        }
+      ]
+    }
+  ]
+}

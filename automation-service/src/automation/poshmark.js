@@ -9,9 +9,115 @@ import {
   randomDelay,
   uploadImages,
 } from "./common.js";
+import fs from "node:fs";
+import path from "node:path";
 
 const POSHMARK_CREATE_URL = "https://poshmark.com/sell";
 const POSHMARK_LOGIN_URL = "https://poshmark.com/login";
+const POSHMARK_CATEGORY_MAP_JSON_PATH = path.resolve(process.cwd(), "data", "poshmark-category-map.json");
+const POSHMARK_CATEGORY_LOG_PATH = path.resolve(process.cwd(), "data", "poshmark.txt");
+
+function normalizeCategoryKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function buildCategoryIndexFromJsonFile(raw) {
+  const parsed = JSON.parse(raw);
+  const categories = Array.isArray(parsed?.categories) ? parsed.categories : [];
+  const indexMap = {};
+
+  for (const category of categories) {
+    const topName = normalizeCategoryKey(category?.topCategory);
+    if (!topName) {
+      continue;
+    }
+
+    const subcategories = Array.isArray(category?.subcategories) ? category.subcategories : [];
+    const leafMap = {};
+
+    for (const item of subcategories) {
+      const leafName = normalizeCategoryKey(item?.subcategory);
+      const index = Number(item?.index);
+      if (!leafName || !Number.isInteger(index) || index < 0) {
+        continue;
+      }
+
+      if (!(leafName in leafMap)) {
+        leafMap[leafName] = index;
+      }
+    }
+
+    if (Object.keys(leafMap).length > 0) {
+      indexMap[topName] = leafMap;
+    }
+  }
+
+  return indexMap;
+}
+
+function buildCategoryIndexFromLogFile(raw) {
+  const indexMap = {};
+  const seen = {};
+  const lines = String(raw || "").split(/\r?\n/);
+  const pattern = /Scraping subcategory:\s*([^>]+)>\s*(.+)\s*$/i;
+
+  for (const line of lines) {
+    const match = line.match(pattern);
+    if (!match) {
+      continue;
+    }
+
+    const topName = normalizeCategoryKey(match[1]);
+    const leafName = normalizeCategoryKey(match[2]);
+    if (!topName || !leafName) {
+      continue;
+    }
+
+    if (!indexMap[topName]) {
+      indexMap[topName] = {};
+      seen[topName] = [];
+    }
+
+    if (leafName in indexMap[topName]) {
+      continue;
+    }
+
+    indexMap[topName][leafName] = seen[topName].length;
+    seen[topName].push(leafName);
+  }
+
+  return indexMap;
+}
+
+function loadPoshmarkCategoryIndexMap() {
+  try {
+    if (fs.existsSync(POSHMARK_CATEGORY_MAP_JSON_PATH)) {
+      const raw = fs.readFileSync(POSHMARK_CATEGORY_MAP_JSON_PATH, "utf8");
+      const map = buildCategoryIndexFromJsonFile(raw);
+      if (Object.keys(map).length > 0) {
+        return map;
+      }
+    }
+  } catch {
+    // Fall through to txt parser.
+  }
+
+  try {
+    if (fs.existsSync(POSHMARK_CATEGORY_LOG_PATH)) {
+      const raw = fs.readFileSync(POSHMARK_CATEGORY_LOG_PATH, "utf8");
+      const map = buildCategoryIndexFromLogFile(raw);
+      if (Object.keys(map).length > 0) {
+        return map;
+      }
+    }
+  } catch {
+    // No usable scrape map.
+  }
+
+  return {};
+}
+
+const POSHMARK_CATEGORY_INDEX_MAP = loadPoshmarkCategoryIndexMap();
 
 async function assertNoPageNotFound(page, contextLabel) {
   const title = String(await page.title().catch(() => "")).trim();
@@ -164,6 +270,45 @@ async function selectCategory(page, topCategory, subcategory) {
     const normalizedSubcategory = /^shirt$/i.test(String(subcategory).trim())
       ? "Shirt"
       : String(subcategory).trim();
+
+    const topKey = normalizeCategoryKey(resolvedTopCategory);
+    const leafKey = normalizeCategoryKey(normalizedSubcategory);
+    const mappedIndex = POSHMARK_CATEGORY_INDEX_MAP?.[topKey]?.[leafKey];
+
+    if (Number.isInteger(mappedIndex) && mappedIndex >= 0) {
+      try {
+        const firstLeafCandidates = [
+          page.getByRole("listitem").first(),
+          page.getByRole("option").first(),
+          page.locator("li").first(),
+        ];
+
+        for (const firstLeaf of firstLeafCandidates) {
+          try {
+            if (await firstLeaf.isVisible({ timeout: 1000 })) {
+              await firstLeaf.click({ timeout: 2000 });
+              break;
+            }
+          } catch {
+            // Try next focus target.
+          }
+        }
+
+        await page.keyboard.press("Home").catch(() => {});
+        await page.waitForTimeout(120);
+
+        for (let step = 0; step < mappedIndex; step += 1) {
+          await page.keyboard.press("ArrowDown");
+          await page.waitForTimeout(90);
+        }
+
+        await page.keyboard.press("Enter");
+        await page.waitForTimeout(300);
+        return;
+      } catch {
+        // Fall back to selector-based text matching below.
+      }
+    }
 
     const trySelectSubcategory = async () => {
       const subcategoryCandidates = [
