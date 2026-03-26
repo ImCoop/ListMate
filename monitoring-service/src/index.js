@@ -87,6 +87,8 @@ app.get("/health", (_request, response) => {
     ok: true,
     service: "monitoring-service",
     monitorIntervalMs: config.monitorIntervalMs,
+    monitorStartupDelayMs: config.monitorStartupDelayMs,
+    saleConfirmationCycles: config.saleConfirmationCycles,
     lastMonitorResult,
   });
 });
@@ -165,26 +167,36 @@ const workerInterval = setInterval(() => {
   void tickWorker();
 }, config.pollIntervalMs);
 
-const monitorInterval = setInterval(() => {
+let monitorInterval = null;
+const startupTimer = setTimeout(() => {
   void tickMonitor();
-}, config.monitorIntervalMs);
-
-void tickMonitor();
+  monitorInterval = setInterval(() => {
+    void tickMonitor();
+  }, config.monitorIntervalMs);
+}, config.monitorStartupDelayMs);
 
 process.on("SIGINT", () => {
   clearInterval(workerInterval);
-  clearInterval(monitorInterval);
+  clearTimeout(startupTimer);
+  if (monitorInterval) {
+    clearInterval(monitorInterval);
+  }
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
   clearInterval(workerInterval);
-  clearInterval(monitorInterval);
+  clearTimeout(startupTimer);
+  if (monitorInterval) {
+    clearInterval(monitorInterval);
+  }
   process.exit(0);
 });
 
 app.listen(config.port, () => {
   console.log(`Monitoring service listening on http://localhost:${config.port}`);
   console.log(`Worker polling every ${config.pollIntervalMs}ms`);
+  console.log(`Monitoring startup delay ${config.monitorStartupDelayMs}ms`);
   console.log(`Listing monitor polling every ${config.monitorIntervalMs}ms`);
+  console.log(`Sale confirmation cycles ${config.saleConfirmationCycles}`);
 });

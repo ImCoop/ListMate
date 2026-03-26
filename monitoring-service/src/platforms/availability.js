@@ -89,12 +89,22 @@ export async function checkListingAvailability({ platform, url, timeoutMs = 1500
     const isHtml = contentType.includes("text/html") || contentType.includes("application/xhtml+xml");
 
     if (!isHtml) {
+      if (response.ok) {
+        return {
+          ok: true,
+          available: true,
+          finalUrl,
+          httpStatus,
+          reason: "Non-HTML response treated as available",
+        };
+      }
+
       return {
         ok: true,
-        available: response.ok,
+        available: null,
         finalUrl,
         httpStatus,
-        reason: response.ok ? "Non-HTML response treated as available" : `HTTP ${httpStatus}`,
+        reason: `HTTP ${httpStatus} (non-HTML, inconclusive)`,
       };
     }
 
@@ -110,12 +120,22 @@ export async function checkListingAvailability({ platform, url, timeoutMs = 1500
       };
     }
 
+    if (response.ok) {
+      return {
+        ok: true,
+        available: true,
+        finalUrl,
+        httpStatus,
+        reason: "Listing appears available",
+      };
+    }
+
     return {
       ok: true,
-      available: response.ok,
+      available: null,
       finalUrl,
       httpStatus,
-      reason: response.ok ? "Listing appears available" : `HTTP ${httpStatus}`,
+      reason: `HTTP ${httpStatus} (inconclusive)`,
     };
   } catch (error) {
     return {

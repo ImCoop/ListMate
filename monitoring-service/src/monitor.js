@@ -4,6 +4,8 @@ import { buildRemovalJobsFromSaleEvent } from "./reconciler.js";
 import { enqueueJobs } from "./store/job-store.js";
 import { hasListingStoreConfig, listListings, updateListing } from "./store/listing-store.js";
 
+const saleCandidateCounts = new Map();
+
 function getUrl(listing, platform) {
   const key = PLATFORM_URL_KEY[platform];
   const value = listing?.[key];
@@ -21,16 +23,14 @@ function inferSoldPlatform(listing, unavailablePlatforms) {
     return unavailablePlatforms[0];
   }
 
+  if (unavailablePlatforms.length > 1) {
+    return null;
+  }
+
   const soldOnPlatform = typeof listing.soldOnPlatform === "string" ? listing.soldOnPlatform : "";
 
   if (soldOnPlatform && unavailablePlatforms.includes(soldOnPlatform)) {
     return soldOnPlatform;
-  }
-
-  for (const platform of ["ebay", "poshmark", "depop"]) {
-    if (unavailablePlatforms.includes(platform)) {
-      return platform;
-    }
   }
 
   return null;
@@ -74,6 +74,18 @@ function hasAnyMonitorableUrl(listing) {
   });
 }
 
+function candidateKey(listingId, platform) {
+  return `${listingId}:${platform}`;
+}
+
+function clearListingCandidates(listingId) {
+  for (const key of saleCandidateCounts.keys()) {
+    if (key.startsWith(`${listingId}:`)) {
+      saleCandidateCounts.delete(key);
+    }
+  }
+}
+
 async function evaluateListing(listing, config) {
   const checks = [];
 
@@ -106,12 +118,34 @@ async function evaluateListing(listing, config) {
   const soldOnPlatform = inferSoldPlatform(listing, unavailablePlatforms);
 
   if (!soldOnPlatform) {
+    clearListingCandidates(listing.id);
     return {
       soldDetected: false,
       listingId: listing.id,
       checks,
     };
   }
+
+  const confirmationCycles = Number(config.saleConfirmationCycles || 2);
+  const key = candidateKey(listing.id, soldOnPlatform);
+
+  clearListingCandidates(listing.id);
+  const currentCount = (saleCandidateCounts.get(key) || 0) + 1;
+  saleCandidateCounts.set(key, currentCount);
+
+  if (currentCount < confirmationCycles) {
+    return {
+      soldDetected: false,
+      awaitingConfirmation: true,
+      confirmationCount: currentCount,
+      confirmationRequired: confirmationCycles,
+      listingId: listing.id,
+      soldOnPlatform,
+      checks,
+    };
+  }
+
+  clearListingCandidates(listing.id);
 
   const updates = buildSaleDetectedUpdate(listing, soldOnPlatform);
   await updateListing(listing.id, updates);

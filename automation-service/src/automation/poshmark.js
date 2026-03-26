@@ -417,14 +417,91 @@ export async function removePoshmarkListing({ listingId, url, userId }) {
     logStep("poshmark", "Opening edit listing menu.");
     await page.getByText(/edit listing/i).first().click({ timeout: 10000 });
 
-    logStep("poshmark", "Deleting listing.");
-    await page.locator("a").filter({ hasText: /delete listing/i }).first().click({ timeout: 10000 });
-    await page.getByRole("button", { name: /^yes$/i }).first().click({ timeout: 10000 });
+    logStep("poshmark", "Setting Availability to Not For Sale.");
+    await page.waitForTimeout(900);
+
+    const availabilityLabel = page.getByText(/^availability$/i).first();
+    try {
+      if (await availabilityLabel.isVisible({ timeout: 1500 })) {
+        await availabilityLabel.click({ timeout: 3000 });
+      }
+    } catch {
+      // Continue to fallback selector path.
+    }
+
+    const availabilitySelectorCandidates = [
+      page.locator('[data-test*="availability"]').first(),
+      page.locator("button").filter({ hasText: /for sale|not for sale/i }).first(),
+      page.locator(".dropdown__selector").filter({ hasText: /for sale|not for sale/i }).first(),
+      page.locator("div").filter({ hasText: /^for sale$/i }).first(),
+    ];
+
+    let openedAvailability = false;
+    for (const selector of availabilitySelectorCandidates) {
+      try {
+        if (await selector.isVisible({ timeout: 900 })) {
+          await selector.click({ timeout: 3000 });
+          openedAvailability = true;
+          break;
+        }
+      } catch {
+        // Try next selector.
+      }
+    }
+
+    if (!openedAvailability) {
+      throw new Error("Could not open Availability selector on Poshmark edit page.");
+    }
+
+    const notForSaleOptionCandidates = [
+      page.getByRole("option", { name: /not for sale/i }).first(),
+      page.getByRole("button", { name: /not for sale/i }).first(),
+      page.getByText(/^not for sale$/i).first(),
+      page.locator("li").filter({ hasText: /not for sale/i }).first(),
+      page.locator("a").filter({ hasText: /not for sale/i }).first(),
+    ];
+
+    let selectedNotForSale = false;
+    for (const option of notForSaleOptionCandidates) {
+      try {
+        if (await option.isVisible({ timeout: 1200 })) {
+          await option.click({ timeout: 4000 });
+          selectedNotForSale = true;
+          break;
+        }
+      } catch {
+        // Try next option selector.
+      }
+    }
+
+    if (!selectedNotForSale) {
+      throw new Error("Could not select 'Not For Sale' in Availability.");
+    }
+
+    const saveButtonCandidates = [
+      page.getByRole("button", { name: /^next$/i }).first(),
+      page.getByRole("button", { name: /^done$/i }).first(),
+      page.getByRole("button", { name: /^save$/i }).first(),
+      page.getByRole("button", { name: /update listing/i }).first(),
+      page.getByRole("button", { name: /list this item/i }).first(),
+    ];
+
+    for (const button of saveButtonCandidates) {
+      try {
+        if (await button.isVisible({ timeout: 1200 })) {
+          await button.click({ timeout: 5000 });
+          break;
+        }
+      } catch {
+        // Keep trying next save candidate.
+      }
+    }
+
     await page.waitForTimeout(1500);
 
     return {
       ok: true,
-      message: `Poshmark listing deleted${listingId ? ` (${listingId})` : ""}.`,
+      message: `Poshmark listing set to Not For Sale${listingId ? ` (${listingId})` : ""}.`,
       listingUrl,
     };
   } catch (error) {

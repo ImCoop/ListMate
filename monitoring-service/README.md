@@ -61,14 +61,17 @@ The service will queue removal jobs for every URL present except the sold platfo
 
 ## Automatic Monitoring
 
-Every `MONITORING_INTERVAL_MS` (default 300000 = 5 minutes), the service:
+After `MONITORING_STARTUP_DELAY_MS` (default 300000 = 5 minutes), the service starts monitoring.
+
+Every `MONITORING_INTERVAL_MS` (default 180000 = 3 minutes), the service:
 
 1. Queries listings from InstantDB.
 2. Checks each active marketplace URL for availability.
 3. If a listing page is sold/unavailable:
-4. Marks the listing `status="sold"` in the dashboard.
-5. Marks sold platform state as `sold` and all other platform states as `remove_pending`.
-6. Queues cross-platform removal jobs.
+4. Requires `MONITORING_SALE_CONFIRMATION_CYCLES` consecutive detections (default 2) before action.
+5. Marks the listing `status="sold"` in the dashboard.
+6. Marks sold platform state as `sold` and all other platform states as `remove_pending`.
+7. Queues cross-platform removal jobs.
 
 The worker then executes queued removals using `AUTOMATION_BASE_URL`:
 

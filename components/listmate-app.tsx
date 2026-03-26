@@ -465,7 +465,7 @@ function NoSearchMatches({ query }: { query: string }) {
   return (
     <div className="rounded-[2rem] border border-dashed border-clay/30 bg-white/70 p-8 text-center shadow-card">
       <p className="text-sm font-medium uppercase tracking-[0.25em] text-clay">No matching listings</p>
-      <h2 className="mt-2 text-2xl font-semibold text-ink">No results for "{query}".</h2>
+      <h2 className="mt-2 text-2xl font-semibold text-ink">No results for &quot;{query}&quot;.</h2>
       <p className="mt-3 text-sm leading-6 text-ink/70">Try a different title search or clear the search field.</p>
     </div>
   );
