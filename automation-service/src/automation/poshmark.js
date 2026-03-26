@@ -149,6 +149,23 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function expandKidsCustomSize(size) {
+  const normalized = String(size || "").trim();
+  const upper = normalized.toUpperCase();
+  const customSizeMap = {
+    XXS: "XX Small",
+    XS: "X Small",
+    S: "Small",
+    M: "Medium",
+    L: "Large",
+    XL: "X Large",
+    XXL: "XX Large",
+    XXXL: "XXX Large",
+  };
+
+  return customSizeMap[upper] || normalized;
+}
+
 async function openSellComposer(page) {
   try {
     const sellLink = page.getByRole("banner").getByRole("link", { name: /sell on poshmark/i });
@@ -368,12 +385,96 @@ async function selectInventoryMode(page, quantity) {
   await page.getByRole("button", { name: /single item/i }).click();
 }
 
-async function selectSize(page, size) {
+async function selectSize(page, size, topCategory) {
   if (!size) {
     return;
   }
 
   await page.locator('[data-test="size"]').click();
+
+  if (String(topCategory || "").trim().toLowerCase() === "kids") {
+    const customSizeValue = expandKidsCustomSize(size);
+    const customTabCandidates = [
+      page.getByRole("tab", { name: /custom/i }).first(),
+      page.getByRole("button", { name: /custom/i }).first(),
+      page.getByText(/^custom$/i).first(),
+    ];
+
+    let openedCustomTab = false;
+    for (const candidate of customTabCandidates) {
+      try {
+        if (await candidate.isVisible({ timeout: 1200 })) {
+          await candidate.click({ timeout: 3000 });
+          openedCustomTab = true;
+          break;
+        }
+      } catch {
+        // Try next candidate.
+      }
+    }
+
+    if (!openedCustomTab) {
+      throw new Error("Could not open Poshmark custom size tab for Kids listing.");
+    }
+
+    const customInputCandidates = [
+      page.getByRole("textbox").first(),
+      page.locator('input[type="text"]').first(),
+      page.locator("input").first(),
+      page.locator("textarea").first(),
+    ];
+
+    let filledCustomSize = false;
+    for (const input of customInputCandidates) {
+      try {
+        if (await input.isVisible({ timeout: 1200 })) {
+          await input.click({ timeout: 2000 });
+          await input.fill(customSizeValue);
+          filledCustomSize = true;
+          break;
+        }
+      } catch {
+        // Try next input candidate.
+      }
+    }
+
+    if (!filledCustomSize) {
+      throw new Error(`Could not fill custom Poshmark size "${customSizeValue}" for Kids listing.`);
+    }
+
+    const saveCandidates = [
+      page.getByRole("button", { name: /^save$/i }).first(),
+      page.getByText(/^save$/i).first(),
+    ];
+
+    let savedCustomSize = false;
+    for (const candidate of saveCandidates) {
+      try {
+        if (await candidate.isVisible({ timeout: 1200 })) {
+          await candidate.click({ timeout: 3000 });
+          savedCustomSize = true;
+          break;
+        }
+      } catch {
+        // Try next save candidate.
+      }
+    }
+
+    if (!savedCustomSize) {
+      throw new Error(`Could not save custom Poshmark size "${customSizeValue}" for Kids listing.`);
+    }
+
+    await page.waitForTimeout(300);
+
+    try {
+      await page.getByRole("button", { name: /^done$/i }).click({ timeout: 1500 });
+    } catch {
+      // Some flows close automatically after saving.
+    }
+
+    return;
+  }
+
   const exactSizeIdButton = page.locator(`button#size-${String(size)}`);
   const exactSizeButton = page.getByRole("button", { name: String(size), exact: true });
   const exactSizeOption = page.getByRole("option", { name: String(size), exact: true });
@@ -541,7 +642,7 @@ export async function automatePoshmark(payload) {
     await selectInventoryMode(page, payload.quantity);
 
     await randomDelay(page);
-    await selectSize(page, payload.size);
+    await selectSize(page, payload.size, payload.topCategory);
 
     await randomDelay(page);
     await selectCondition(page, payload.condition);
