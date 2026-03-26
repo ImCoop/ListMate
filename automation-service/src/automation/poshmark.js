@@ -161,25 +161,47 @@ async function selectCategory(page, topCategory, subcategory) {
   await page.waitForTimeout(500);
 
   if (subcategory) {
-    const resolvedSubcategory = String(subcategory);
-    const subcategoryCandidates = [
-      page.getByRole("listitem").filter({ hasText: resolvedSubcategory }).first(),
-      page.getByText(resolvedSubcategory, { exact: true }).first(),
-      page.getByText(new RegExp(escapeRegExp(resolvedSubcategory), "i")).first(),
-    ];
+    const normalizedSubcategory = /^shirt$/i.test(String(subcategory).trim())
+      ? "Shirts"
+      : String(subcategory).trim();
 
-    for (const candidate of subcategoryCandidates) {
-      try {
-        if (await candidate.isVisible({ timeout: 1200 })) {
-          await candidate.click({ timeout: 2500 });
-          return;
+    const trySelectSubcategory = async () => {
+      const subcategoryCandidates = [
+        page.getByRole("listitem").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.getByRole("option", { name: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.getByRole("button", { name: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.locator("li").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.locator("a").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.getByText(new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i")).first(),
+      ];
+
+      for (const candidate of subcategoryCandidates) {
+        try {
+          if (await candidate.isVisible({ timeout: 1200 })) {
+            await candidate.scrollIntoViewIfNeeded().catch(() => {});
+            await candidate.click({ timeout: 3000 });
+            return true;
+          }
+        } catch {
+          // Try next selector.
         }
-      } catch {
-        // Try next selector.
       }
+
+      return false;
+    };
+
+    if (await trySelectSubcategory()) {
+      return;
     }
 
-    throw new Error(`Unable to select Poshmark subcategory "${resolvedSubcategory}".`);
+    // Retry once after reopening selector to handle intermittent popup rerender.
+    await page.locator(".dropdown__selector.dropdown__selector--select-tag").first().click();
+    await page.waitForTimeout(400);
+    if (await trySelectSubcategory()) {
+      return;
+    }
+
+    throw new Error(`Unable to select Poshmark subcategory "${normalizedSubcategory}".`);
   }
 }
 
