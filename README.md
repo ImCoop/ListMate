@@ -227,6 +227,40 @@ npm run status
 node service-status.js --once
 ```
 
+### Optional: Auto-Update Staging From GitHub
+
+The hub can periodically fetch updates, detect new commits, and stage a pending update marker for installation.
+
+1. Enable updater in your service config (`service-instance.config.json`):
+
+```json
+"updates": {
+  "enabled": true,
+  "remote": "origin",
+  "branch": "main",
+  "checkIntervalMs": 60000,
+  "applyStagedOnStart": false
+}
+```
+
+2. Start the hub as usual:
+
+```bash
+npm run hub:prod
+```
+
+When a newer commit exists on `origin/main`, the hub fetches it and writes:
+
+- `.update-staging/pending-update.json`
+
+3. Apply staged updates on next restart:
+
+```bash
+node service-hub.js --prod --apply-staged-update
+```
+
+Or set `"applyStagedOnStart": true` to apply automatically whenever the hub starts.
+
 ### Run multiple instances on one machine
 
 1. Copy the template into per-instance files (for example `service-instance.a.json`, `service-instance.b.json`).

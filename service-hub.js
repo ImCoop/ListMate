@@ -7,6 +7,7 @@ const { spawn } = require("node:child_process");
 
 const args = process.argv.slice(2);
 const isProd = args.includes("--prod");
+const applyStagedUpdateArg = args.includes("--apply-staged-update");
 const configArgIndex = args.indexOf("--config");
 const configPathArg = configArgIndex >= 0 ? args[configArgIndex + 1] : null;
 const configPath = path.resolve(process.cwd(), configPathArg || "service-instance.config.json");
@@ -49,6 +50,69 @@ function normalizeBaseUrl(value) {
   return String(value || "").trim().replace(/\/$/, "");
 }
 
+function ensureDirectory(targetPath) {
+  fs.mkdirSync(targetPath, { recursive: true });
+}
+
+function readJsonIfExists(targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(targetPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(targetPath, data) {
+  ensureDirectory(path.dirname(targetPath));
+  fs.writeFileSync(targetPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+function runShellCommand(command, cwd, env = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, {
+      shell: true,
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        ...env,
+      },
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+
+      reject(
+        new Error(
+          `Command failed (${command}) [code=${code === null ? "null" : code}]` +
+            (stderr.trim() ? `: ${stderr.trim()}` : ""),
+        ),
+      );
+    });
+  });
+}
+
 function loadConfig(targetPath) {
   const raw = fs.readFileSync(targetPath, "utf8");
   const parsed = JSON.parse(raw);
@@ -61,6 +125,20 @@ function loadConfig(targetPath) {
   const frontendBaseUrl = normalizeBaseUrl(parsed?.urls?.frontend || `http://${host}:${frontendPort}`);
   const automationBaseUrl = normalizeBaseUrl(parsed?.urls?.automation || `http://${host}:${automationPort}`);
   const monitoringBaseUrl = normalizeBaseUrl(parsed?.urls?.monitoring || `http://${host}:${monitoringPort}`);
+  const updatesEnabled = Boolean(parsed?.updates?.enabled);
+  const updatesRepoCwd = path.resolve(process.cwd(), parsed?.updates?.repoCwd || ".");
+  const updatesStagingDir = path.resolve(process.cwd(), parsed?.updates?.stagingDir || ".update-staging");
+  const updatesPendingFile = path.join(updatesStagingDir, "pending-update.json");
+  const updatesApplyOnStart = Boolean(parsed?.updates?.applyStagedOnStart);
+  const updatesCheckIntervalMs = Number(parsed?.updates?.checkIntervalMs || 60_000);
+  const updatesRemote = parsed?.updates?.remote || "origin";
+  const updatesBranch = parsed?.updates?.branch || "main";
+  const updatesInstallCommand = parsed?.updates?.installCommand || "npm install";
+  const updatesAutomationInstallCommand =
+    parsed?.updates?.automationInstallCommand || "npm install";
+  const updatesMonitoringInstallCommand =
+    parsed?.updates?.monitoringInstallCommand || "npm install";
+  const updatesBuildCommand = parsed?.updates?.buildCommand || "npm run build";
 
   return {
     instanceName: parsed?.instanceName || "listmate-instance",
@@ -103,6 +181,20 @@ function loadConfig(targetPath) {
           parsed?.services?.monitoring?.jobStorePath || "data/removal-jobs.json",
         ...(parsed?.services?.monitoring?.env || {}),
       },
+    },
+    updates: {
+      enabled: updatesEnabled,
+      repoCwd: updatesRepoCwd,
+      stagingDir: updatesStagingDir,
+      pendingFile: updatesPendingFile,
+      applyStagedOnStart: updatesApplyOnStart,
+      checkIntervalMs: updatesCheckIntervalMs,
+      remote: updatesRemote,
+      branch: updatesBranch,
+      installCommand: updatesInstallCommand,
+      automationInstallCommand: updatesAutomationInstallCommand,
+      monitoringInstallCommand: updatesMonitoringInstallCommand,
+      buildCommand: updatesBuildCommand,
     },
   };
 }
@@ -154,6 +246,100 @@ const services = [
     healthUrl: loadedConfig.monitoring.healthUrl,
   },
 ];
+
+const updates = loadedConfig.updates;
+let updateTimer = null;
+let updateCheckInFlight = false;
+const updateState = {
+  enabled: updates.enabled,
+  lastCheckAt: null,
+  pending: readJsonIfExists(updates.pendingFile),
+  lastError: "",
+};
+
+async function getGitHeadSha(repoCwd, ref) {
+  const result = await runShellCommand(`git rev-parse ${ref}`, repoCwd);
+  const sha = String(result.stdout || "").trim().split(/\s+/)[0];
+  if (!sha) {
+    throw new Error(`Unable to resolve git ref: ${ref}`);
+  }
+  return sha;
+}
+
+async function applyPendingUpdate() {
+  const pending = readJsonIfExists(updates.pendingFile);
+  if (!pending?.remoteHeadSha) {
+    return false;
+  }
+
+  await runShellCommand(
+    `git pull --ff-only ${updates.remote} ${updates.branch}`,
+    updates.repoCwd,
+  );
+
+  await runShellCommand(updates.installCommand, updates.repoCwd);
+  await runShellCommand(updates.automationInstallCommand, loadedConfig.automation.cwd);
+  await runShellCommand(updates.monitoringInstallCommand, loadedConfig.monitoring.cwd);
+
+  if (isProd) {
+    await runShellCommand(updates.buildCommand, updates.repoCwd);
+  }
+
+  try {
+    fs.unlinkSync(updates.pendingFile);
+  } catch {}
+
+  updateState.pending = null;
+  updateState.lastError = "";
+  return true;
+}
+
+async function stageUpdateIfAvailable() {
+  await runShellCommand(`git fetch ${updates.remote} ${updates.branch}`, updates.repoCwd);
+
+  const localHeadSha = await getGitHeadSha(updates.repoCwd, "HEAD");
+  const remoteHeadSha = await getGitHeadSha(updates.repoCwd, "FETCH_HEAD");
+
+  updateState.lastCheckAt = new Date().toISOString();
+
+  if (localHeadSha === remoteHeadSha) {
+    return false;
+  }
+
+  const existingPending = readJsonIfExists(updates.pendingFile);
+  if (existingPending?.remoteHeadSha === remoteHeadSha) {
+    updateState.pending = existingPending;
+    return true;
+  }
+
+  const pending = {
+    instanceName: loadedConfig.instanceName,
+    remote: updates.remote,
+    branch: updates.branch,
+    localHeadSha,
+    remoteHeadSha,
+    stagedAt: new Date().toISOString(),
+  };
+  writeJson(updates.pendingFile, pending);
+  updateState.pending = pending;
+  return true;
+}
+
+async function runUpdateCheck() {
+  if (!updates.enabled || updateCheckInFlight || shuttingDown) {
+    return;
+  }
+
+  updateCheckInFlight = true;
+  try {
+    await stageUpdateIfAvailable();
+    updateState.lastError = "";
+  } catch (error) {
+    updateState.lastError = error instanceof Error ? error.message : "Update check failed";
+  } finally {
+    updateCheckInFlight = false;
+  }
+}
 
 function printLine(service, line) {
   const cleaned = String(line || "").replace(/\r/g, "").trimEnd();
@@ -273,6 +459,25 @@ async function renderDashboard() {
     "",
   ];
 
+  if (updates.enabled) {
+    const pending = updateState.pending || readJsonIfExists(updates.pendingFile);
+    const updateStatus = pending
+      ? colorize("PENDING UPDATE", 33)
+      : colorize("No pending update", 32);
+    lines.push(`Updater: ${updateStatus}`);
+    lines.push(`  source: ${updates.remote}/${updates.branch}`);
+    if (updateState.lastCheckAt) {
+      lines.push(`  last check: ${new Date(updateState.lastCheckAt).toLocaleString()}`);
+    }
+    if (pending?.remoteHeadSha) {
+      lines.push(`  staged: ${String(pending.remoteHeadSha).slice(0, 12)} (${pending.stagedAt || "unknown time"})`);
+    }
+    if (updateState.lastError) {
+      lines.push(`  error: ${truncate(updateState.lastError, 140)}`);
+    }
+    lines.push("");
+  }
+
   for (const { service, health } of checks) {
     const processState = service.exited
       ? colorize("EXITED", 31)
@@ -299,10 +504,28 @@ async function renderDashboard() {
 }
 
 async function startAll() {
+  if (updates.enabled && (updates.applyStagedOnStart || applyStagedUpdateArg)) {
+    try {
+      const applied = await applyPendingUpdate();
+      if (applied) {
+        updateState.lastCheckAt = new Date().toISOString();
+      }
+    } catch (error) {
+      updateState.lastError = error instanceof Error ? error.message : "Failed to apply staged update";
+    }
+  }
+
   for (const service of services) {
     service.lastLog = `Starting: ${service.command}`;
     spawnService(service);
     await new Promise((resolve) => setTimeout(resolve, STARTUP_DELAY_MS));
+  }
+
+  if (updates.enabled) {
+    void runUpdateCheck();
+    updateTimer = setInterval(() => {
+      void runUpdateCheck();
+    }, updates.checkIntervalMs);
   }
 
   await renderDashboard();
@@ -322,6 +545,10 @@ async function shutdown() {
   if (statusTimer) {
     clearInterval(statusTimer);
     statusTimer = null;
+  }
+  if (updateTimer) {
+    clearInterval(updateTimer);
+    updateTimer = null;
   }
 
   for (const service of services) {

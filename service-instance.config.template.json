@@ -37,6 +37,19 @@
       "jobStorePath": "data/removal-jobs.instance-1.json",
       "env": {}
     }
+  },
+  "updates": {
+    "enabled": false,
+    "remote": "origin",
+    "branch": "main",
+    "repoCwd": ".",
+    "stagingDir": ".update-staging",
+    "checkIntervalMs": 60000,
+    "applyStagedOnStart": false,
+    "installCommand": "npm install",
+    "automationInstallCommand": "npm install",
+    "monitoringInstallCommand": "npm install",
+    "buildCommand": "npm run build"
   }
 }
 
