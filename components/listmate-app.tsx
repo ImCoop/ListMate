@@ -25,7 +25,7 @@ const MARKETPLACE_TAXONOMY = {
         {
           name: "Tops",
           subcategories: [
-            { name: "Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+            { name: "Shirts", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
             { name: "Tank Top", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL"] },
             { name: "Polo", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
             { name: "Button-Up Shirt", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
@@ -76,7 +76,7 @@ const MARKETPLACE_TAXONOMY = {
         {
           name: "Tops",
           subcategories: [
-            { name: "Shirt", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+            { name: "Shirts", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
             { name: "Blouse", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
             { name: "Tank Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
             { name: "Crop Top", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL"] },
@@ -252,29 +252,12 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
   return size.replace(/^Waist\s+/i, "");
 }
 
-function mapCategoryForPlatform(
-  category: string | undefined,
-  platform: MarketplacePlatform,
-) {
+function mapCategoryForPlatform(category: string | undefined) {
   if (!category) {
     return category;
   }
 
-  let trimmed = category.trim();
-
-  if (/^t-?shirt$/i.test(trimmed)) {
-    trimmed = "Shirt";
-  }
-
-  if (platform === "poshmark" && /^shirt$/i.test(trimmed)) {
-    return "Shirts";
-  }
-
-  if (platform === "poshmark" && /^men shirts$/i.test(trimmed)) {
-    return "Shirts";
-  }
-
-  return trimmed;
+  return category.trim();
 }
 
 function normalizeUrl(value: string) {
@@ -295,7 +278,7 @@ function isEbayItemUrl(value: string) {
 
 const DEFAULT_GENDER: GenderName = "Women";
 const DEFAULT_CATEGORY_GROUP = getCategoryOptions(DEFAULT_GENDER)[0] || "Tops";
-const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "Shirt";
+const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "Shirts";
 const DEFAULT_SIZE = getSizeOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP, DEFAULT_SUBCATEGORY)[0] || "M";
 
 type FormState = {
@@ -1465,7 +1448,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           quantity: listing.quantity,
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
-          category: mapCategoryForPlatform(listing.category, platform),
+          category: mapCategoryForPlatform(listing.category),
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,
