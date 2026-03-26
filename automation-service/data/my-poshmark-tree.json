@@ -1,0 +1,579 @@
+{
+  "capturedAt": "2026-03-26T19:35:01.731Z",
+  "source": "https://poshmark.com/sell",
+  "topCategories": [
+    {
+      "name": "Women",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "children": [
+            "Accessories",
+            "Bags",
+            "Dresses",
+            "Intimates & Sleepwear",
+            "Jackets & Coats",
+            "Jeans",
+            "Jewelry",
+            "Makeup",
+            "Pants & Jumpsuits"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Bags",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Dresses",
+          "children": [
+            "Accessories",
+            "Bags",
+            "Dresses",
+            "Intimates & Sleepwear",
+            "Jackets & Coats",
+            "Jeans",
+            "Jewelry",
+            "Makeup",
+            "Pants & Jumpsuits",
+            "Shoes"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Intimates & Sleepwear",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Jackets & Coats",
+          "children": [
+            "Belts",
+            "Face Masks",
+            "Glasses",
+            "Gloves & Mittens",
+            "Hair Accessories",
+            "Hats",
+            "Hosiery & Socks",
+            "Key & Card Holders",
+            "Laptop Cases",
+            "Phone Cases",
+            "Scarves & Wraps",
+            "Sunglasses",
+            "Tablet Cases"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Jeans",
+          "children": [
+            "Baby Bags",
+            "Backpacks",
+            "Clutches & Wristlets",
+            "Cosmetic Bags & Cases",
+            "Crossbody Bags",
+            "Hobos",
+            "Laptop Bags",
+            "Mini Bags",
+            "Satchels",
+            "Shoulder Bags",
+            "Totes",
+            "Travel Bags",
+            "Wallets",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Jewelry",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Makeup",
+          "children": [],
+          "isLeaf": true
+        }
+      ]
+    },
+    {
+      "name": "Men",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "children": [
+            "Accessories",
+            "Bags",
+            "Jackets & Coats",
+            "Jeans",
+            "Pants",
+            "Shirts",
+            "Shoes",
+            "Shorts",
+            "Suits & Blazers"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Bags",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Jackets & Coats",
+          "children": [
+            "Accessories",
+            "Bags",
+            "Jackets & Coats",
+            "Jeans",
+            "Pants",
+            "Shirts",
+            "Shoes",
+            "Shorts",
+            "Suits & Blazers",
+            "Sweaters"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Jeans",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Pants",
+          "children": [
+            "Belts",
+            "Cuff Links",
+            "Face Masks",
+            "Glasses",
+            "Gloves",
+            "Hats",
+            "Jewelry",
+            "Key & Card Holders",
+            "Money Clips",
+            "Phone Cases",
+            "Pocket Squares",
+            "Scarves",
+            "Sunglasses"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Shirts",
+          "children": [
+            "Backpacks",
+            "Belt Bags",
+            "Briefcases",
+            "Duffel Bags",
+            "Laptop Bags",
+            "Luggage & Travel Bags",
+            "Messenger Bags",
+            "Toiletry Bags",
+            "Wallets",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Shoes",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Shorts",
+          "children": [],
+          "isLeaf": true
+        }
+      ]
+    },
+    {
+      "name": "Kids",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "children": [
+            "Accessories",
+            "Bottoms",
+            "Dresses",
+            "Jackets & Coats",
+            "Matching Sets",
+            "One Pieces",
+            "Pajamas",
+            "Shirts & Tops",
+            "Shoes"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Bottoms",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Dresses",
+          "children": [
+            "Accessories",
+            "Bottoms",
+            "Dresses",
+            "Jackets & Coats",
+            "Matching Sets",
+            "One Pieces",
+            "Pajamas",
+            "Shirts & Tops",
+            "Shoes",
+            "Swim"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Jackets & Coats",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Matching Sets",
+          "children": [
+            "Bags",
+            "Belts",
+            "Bibs",
+            "Diaper Covers",
+            "Face Masks",
+            "Hair Accessories",
+            "Hats",
+            "Jewelry",
+            "Mittens",
+            "Socks & Tights",
+            "Sunglasses",
+            "Suspenders",
+            "Ties"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "One Pieces",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Pajamas",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Shirts & Tops",
+          "children": [],
+          "isLeaf": true
+        }
+      ]
+    },
+    {
+      "name": "Home",
+      "subcategories": [
+        {
+          "name": "Accents",
+          "children": [
+            "Accents",
+            "Art",
+            "Bath",
+            "Bedding",
+            "Design",
+            "Dining",
+            "Games",
+            "Holiday",
+            "Kitchen"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Art",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Bath",
+          "children": [
+            "Accents",
+            "Art",
+            "Bath",
+            "Bedding",
+            "Design",
+            "Dining",
+            "Games",
+            "Holiday",
+            "Kitchen",
+            "Office"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Bedding",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Design",
+          "children": [
+            "Accent Pillows",
+            "Baskets & Bins",
+            "Candles & Holders",
+            "Coffee Table Books",
+            "Curtains & Drapes",
+            "Decor",
+            "Door Mats",
+            "Faux Florals",
+            "Furniture Covers",
+            "Lanterns",
+            "Picture Frames",
+            "Vases",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Dining",
+          "children": [
+            "Ceramics",
+            "Drawing & Illustrations",
+            "Fiber Arts",
+            "Glass Art",
+            "Mixed Media",
+            "Painting",
+            "Photography",
+            "Posters",
+            "Prints",
+            "Sculpture",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Games",
+          "children": [
+            "Bath Accessories",
+            "Bath Storage",
+            "Bath Towels",
+            "Beach Towels",
+            "Hand Towels",
+            "Mats",
+            "Shower Curtains",
+            "Vanity Mirrors",
+            "Vanity Trays",
+            "Wash Cloths",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Holiday",
+          "children": [],
+          "isLeaf": true
+        }
+      ]
+    },
+    {
+      "name": "Pets",
+      "subcategories": [
+        {
+          "name": "Dog",
+          "children": [
+            "Dog",
+            "Cat",
+            "Bird",
+            "Fish",
+            "Reptile",
+            "Small Pets",
+            "Other"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Cat",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Bird",
+          "children": [
+            "Dog",
+            "Cat",
+            "Bird",
+            "Fish",
+            "Reptile",
+            "Small Pets",
+            "Other"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Fish",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Reptile",
+          "children": [
+            "Bedding & Blankets",
+            "Bowls & Feeders",
+            "Carriers & Travel",
+            "Clothing & Accessories",
+            "Collars, Leashes & Harnesses",
+            "Grooming",
+            "Housebreaking",
+            "Toys",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Small Pets",
+          "children": [
+            "Beds",
+            "Bowls & Feeders",
+            "Carriers & Travel",
+            "Clothing & Accessories",
+            "Collars, Leashes & Harnesses",
+            "Grooming",
+            "Scratchers",
+            "Toys",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Other",
+          "children": [],
+          "isLeaf": true
+        }
+      ]
+    },
+    {
+      "name": "Electronics",
+      "subcategories": [
+        {
+          "name": "Cameras, Photo & Video",
+          "children": [
+            "Cameras, Photo & Video",
+            "Computers, Laptops & Parts",
+            "Cell Phones & Accessories",
+            "Car Audio, Video & GPS",
+            "Wearables",
+            "Tablets & Accessories",
+            "Video Games & Consoles",
+            "VR, AR & Accessories",
+            "Media"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Computers, Laptops & Parts",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Cell Phones & Accessories",
+          "children": [
+            "Cameras, Photo & Video",
+            "Computers, Laptops & Parts",
+            "Cell Phones & Accessories",
+            "Car Audio, Video & GPS",
+            "Wearables",
+            "Tablets & Accessories",
+            "Video Games & Consoles",
+            "VR, AR & Accessories",
+            "Media",
+            "Networking"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Car Audio, Video & GPS",
+          "children": [],
+          "isLeaf": true
+        },
+        {
+          "name": "Wearables",
+          "children": [
+            "Digital Cameras",
+            "Bags & Cases",
+            "Binoculars & Scopes",
+            "Film Photography",
+            "Flashes",
+            "Lenses",
+            "Memory Cards",
+            "Simulated Cameras",
+            "Tripods & Monopods",
+            "Underwater Photography",
+            "Video",
+            "Camera Straps",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Tablets & Accessories",
+          "children": [
+            "Laptops",
+            "Cables & Interconnects",
+            "Camera Privacy Covers",
+            "Computer Cable Adapters",
+            "Computer Headsets",
+            "Computer Microphones",
+            "External Components",
+            "Graphics Cards",
+            "Internal Components",
+            "Keyboards",
+            "Memory Card Readers",
+            "Mice",
+            "Mounts & Stands",
+            "Surge Protectors"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "Video Games & Consoles",
+          "children": [
+            "Cell Phones",
+            "Holsters & Clips",
+            "Headsets",
+            "Screen Protectors",
+            "Cases",
+            "Covers",
+            "Skins & Bumpers",
+            "Chargers",
+            "Adapters",
+            "Cables",
+            "None"
+          ],
+          "isLeaf": false
+        },
+        {
+          "name": "VR, AR & Accessories",
+          "children": [
+            "GPS & Navigation",
+            "Amplifiers",
+            "Car Stereo Receivers",
+            "Changers",
+            "Digital Media Receivers",
+            "Equalizers",
+            "Satellite Radio",
+            "Car Headphones",
+            "In-Mirror Video",
+            "In-Visor Video",
+            "On-Dash Cameras",
+            "Overhead Video",
+            "Surround Processors",
+            "TV Tuners",
+            "Vehicle Backup Cameras",
+            "None"
+          ],
+          "isLeaf": false
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Iterates second-level by index under each fixed top category."
+  ]
+}

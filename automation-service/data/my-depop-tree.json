@@ -1,0 +1,37 @@
+{
+  "capturedAt": "2026-03-26T19:47:01.456Z",
+  "source": "https://www.depop.com/products/create/",
+  "topCategories": [
+    {
+      "name": "T-shirts",
+      "subcategories": []
+    },
+    {
+      "name": "Hoodies",
+      "subcategories": []
+    },
+    {
+      "name": "Sweatshirts",
+      "subcategories": []
+    },
+    {
+      "name": "Jumpers",
+      "subcategories": []
+    },
+    {
+      "name": "Cardigans",
+      "subcategories": []
+    },
+    {
+      "name": "Shirts",
+      "subcategories": []
+    },
+    {
+      "name": "Polo shirts",
+      "subcategories": []
+    }
+  ],
+  "notes": [
+    "Index-based scrape over Depop category list; stops after 5 consecutive failures."
+  ]
+}

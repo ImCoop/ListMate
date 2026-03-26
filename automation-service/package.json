@@ -7,7 +7,9 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "check": "node --check src/index.js",
-    "install:browser": "playwright install chromium"
+    "install:browser": "playwright install chromium",
+    "scrape:poshmark:categories": "node scripts/scrape-poshmark-categories.js",
+    "scrape:depop:categories": "node scripts/scrape-depop-categories.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

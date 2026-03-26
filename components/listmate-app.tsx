@@ -183,12 +183,81 @@ const PLATFORM_STATE_KEY: Record<MarketplacePlatform, "poshmarkState" | "depopSt
   ebay: "ebayState",
 };
 
+const POPULAR_CATEGORY_OVERRIDE: Record<
+  GenderName,
+  { name: string; subcategories: { name: string; sizeType: "alpha" | "mixed" | "numeric" | "waist" | "one"; sizes: string[] }[] }[]
+> = {
+  Men: [
+    {
+      name: "Tops",
+      subcategories: [
+        { name: "Shirts", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+        { name: "Jackets & Coats", sizeType: "alpha", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+      ],
+    },
+    {
+      name: "Bottoms",
+      subcategories: [
+        { name: "Jeans", sizeType: "waist", sizes: ["28", "29", "30", "31", "32", "33", "34", "36", "38", "40", "42", "44"] },
+        { name: "Pants", sizeType: "mixed", sizes: ["S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38", "40"] },
+        { name: "Shorts", sizeType: "mixed", sizes: ["S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36", "38"] },
+      ],
+    },
+    {
+      name: "Shoes",
+      subcategories: [{ name: "Shoes", sizeType: "numeric", sizes: ["7", "8", "9", "10", "11", "12", "13", "14"] }],
+    },
+    {
+      name: "Accessories",
+      subcategories: [
+        { name: "Accessories", sizeType: "one", sizes: ["One Size"] },
+        { name: "Bags", sizeType: "one", sizes: ["One Size"] },
+      ],
+    },
+  ],
+  Women: [
+    {
+      name: "Tops",
+      subcategories: [
+        { name: "Shirts", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+        { name: "Intimates & Sleepwear", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] },
+      ],
+    },
+    {
+      name: "Bottoms",
+      subcategories: [{ name: "Jeans", sizeType: "numeric", sizes: ["00", "0", "2", "4", "6", "8", "10", "12", "14", "16"] }],
+    },
+    {
+      name: "Dresses",
+      subcategories: [{ name: "Dresses", sizeType: "mixed", sizes: ["XXS", "XS", "S", "M", "L", "XL", "0", "2", "4", "6", "8", "10", "12", "14"] }],
+    },
+    {
+      name: "Outerwear",
+      subcategories: [{ name: "Jackets & Coats", sizeType: "alpha", sizes: ["XXS", "XS", "S", "M", "L", "XL", "XXL"] }],
+    },
+    {
+      name: "Shoes",
+      subcategories: [{ name: "Shoes", sizeType: "numeric", sizes: ["5", "6", "7", "8", "9", "10", "11", "12"] }],
+    },
+    {
+      name: "Accessories",
+      subcategories: [
+        { name: "Accessories", sizeType: "one", sizes: ["One Size"] },
+        { name: "Bags", sizeType: "one", sizes: ["One Size"] },
+        { name: "Jewelry", sizeType: "one", sizes: ["One Size"] },
+        { name: "Makeup", sizeType: "one", sizes: ["One Size"] },
+      ],
+    },
+  ],
+};
+
 function getGenderRecord(gender: GenderName) {
   return MARKETPLACE_TAXONOMY.genders.find((entry) => entry.name === gender) || MARKETPLACE_TAXONOMY.genders[0];
 }
 
 function getCategoryRecords(gender: GenderName) {
-  return getGenderRecord(gender).categories;
+  const override = POPULAR_CATEGORY_OVERRIDE[gender];
+  return override?.length ? override : getGenderRecord(gender).categories;
 }
 
 function getSubcategoryRecords(gender: GenderName, categoryGroup: string) {
@@ -252,12 +321,28 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
   return size.replace(/^Waist\s+/i, "");
 }
 
-function mapCategoryForPlatform(category: string | undefined) {
+function mapCategoryForPlatform(category: string | undefined, platform: MarketplacePlatform) {
   if (!category) {
     return category;
   }
 
-  return category.trim();
+  const normalized = category.trim();
+
+  if (platform === "depop") {
+    const depopMap: Record<string, string> = {
+      "Jackets & Coats": "Jackets",
+      Pants: "Trousers",
+      Shoes: "Trainers",
+      "Intimates & Sleepwear": "Pyjamas",
+      Jewelry: "Jewellery",
+      Makeup: "Other",
+      Accessories: "Other",
+    };
+
+    return depopMap[normalized] || normalized;
+  }
+
+  return normalized;
 }
 
 function normalizeUrl(value: string) {
@@ -1448,7 +1533,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           quantity: listing.quantity,
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
-          category: mapCategoryForPlatform(listing.category),
+          category: mapCategoryForPlatform(listing.category, platform),
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,

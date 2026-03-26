@@ -1,0 +1,53 @@
+[poshmark-scrape] Scraping top category: Women
+[poshmark-scrape]   Scraping subcategory: Women > Accessories
+[poshmark-scrape]   Scraping subcategory: Women > Bags
+[poshmark-scrape]   Scraping subcategory: Women > Dresses
+[poshmark-scrape]   Scraping subcategory: Women > Intimates & Sleepwear
+[poshmark-scrape]   Scraping subcategory: Women > Jackets & Coats
+[poshmark-scrape]   Scraping subcategory: Women > Jeans
+[poshmark-scrape]   Scraping subcategory: Women > Jewelry
+[poshmark-scrape]   Scraping subcategory: Women > Makeup
+[poshmark-scrape] Scraping top category: Men
+[poshmark-scrape]   Scraping subcategory: Men > Accessories
+[poshmark-scrape]   Scraping subcategory: Men > Bags
+[poshmark-scrape]   Scraping subcategory: Men > Jackets & Coats
+[poshmark-scrape]   Scraping subcategory: Men > Jeans
+[poshmark-scrape]   Scraping subcategory: Men > Pants
+[poshmark-scrape]   Scraping subcategory: Men > Shirts
+[poshmark-scrape]   Scraping subcategory: Men > Shoes
+[poshmark-scrape]   Scraping subcategory: Men > Shorts
+[poshmark-scrape] Scraping top category: Kids
+[poshmark-scrape]   Scraping subcategory: Kids > Accessories
+[poshmark-scrape]   Scraping subcategory: Kids > Bottoms
+[poshmark-scrape]   Scraping subcategory: Kids > Dresses
+[poshmark-scrape]   Scraping subcategory: Kids > Jackets & Coats
+[poshmark-scrape]   Scraping subcategory: Kids > Matching Sets
+[poshmark-scrape]   Scraping subcategory: Kids > One Pieces
+[poshmark-scrape]   Scraping subcategory: Kids > Pajamas
+[poshmark-scrape]   Scraping subcategory: Kids > Shirts & Tops
+[poshmark-scrape] Scraping top category: Home
+[poshmark-scrape]   Scraping subcategory: Home > Accents
+[poshmark-scrape]   Scraping subcategory: Home > Art
+[poshmark-scrape]   Scraping subcategory: Home > Bath
+[poshmark-scrape]   Scraping subcategory: Home > Bedding
+[poshmark-scrape]   Scraping subcategory: Home > Design
+[poshmark-scrape]   Scraping subcategory: Home > Dining
+[poshmark-scrape]   Scraping subcategory: Home > Games
+[poshmark-scrape]   Scraping subcategory: Home > Holiday
+[poshmark-scrape] Scraping top category: Pets
+[poshmark-scrape]   Scraping subcategory: Pets > Dog
+[poshmark-scrape]   Scraping subcategory: Pets > Cat
+[poshmark-scrape]   Scraping subcategory: Pets > Bird
+[poshmark-scrape]   Scraping subcategory: Pets > Fish
+[poshmark-scrape]   Scraping subcategory: Pets > Reptile
+[poshmark-scrape]   Scraping subcategory: Pets > Small Pets
+[poshmark-scrape]   Scraping subcategory: Pets > Other
+[poshmark-scrape] Scraping top category: Electronics
+[poshmark-scrape]   Scraping subcategory: Electronics > Cameras, Photo & Video
+[poshmark-scrape]   Scraping subcategory: Electronics > Computers, Laptops & Parts
+[poshmark-scrape]   Scraping subcategory: Electronics > Cell Phones & Accessories
+[poshmark-scrape]   Scraping subcategory: Electronics > Car Audio, Video & GPS
+[poshmark-scrape]   Scraping subcategory: Electronics > Wearables
+[poshmark-scrape]   Scraping subcategory: Electronics > Tablets & Accessories
+[poshmark-scrape]   Scraping subcategory: Electronics > Video Games & Consoles
+[poshmark-scrape]   Scraping subcategory: Electronics > VR, AR & Accessories

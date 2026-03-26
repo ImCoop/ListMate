@@ -1,0 +1,159 @@
+
+[depop-scrape] Opening sell page.
+[depop-scrape] Scraping top category: T-shirts
+[depop-scrape] Scraping top category: Hoodies
+[depop-scrape] Scraping top category: Sweatshirts
+[depop-scrape] Scraping top category: Jumpers
+[depop-scrape] Scraping top category: Cardigans
+[depop-scrape] Scraping top category: Shirts
+[depop-scrape] Scraping top category: Polo shirts
+[depop-scrape] Scraping top category: Blouses
+[depop-scrape] Scraping top category: Crop tops
+[depop-scrape] Scraping top category: Vests
+[depop-scrape] Scraping top category: Corsets
+[depop-scrape] Scraping top category: Bodysuits
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Jeans
+[depop-scrape] Scraping top category: Sweatpants
+[depop-scrape] Scraping top category: Trousers
+[depop-scrape] Scraping top category: Shorts
+[depop-scrape] Scraping top category: Leggings
+[depop-scrape] Scraping top category: Skirts
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Coats
+[depop-scrape] Scraping top category: Jackets
+[depop-scrape] Scraping top category: Gilets
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Jumpsuits
+[depop-scrape] Scraping top category: Playsuits
+[depop-scrape] Scraping top category: Dungarees
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Suits
+[depop-scrape] Scraping top category: Tailored jackets
+[depop-scrape] Scraping top category: Tailored trousers
+[depop-scrape] Scraping top category: Waistcoats
+[depop-scrape] Scraping top category: Tuxedos
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Trainers
+[depop-scrape] Scraping top category: Slides
+[depop-scrape] Scraping top category: Sandals
+[depop-scrape] Scraping top category: Flip flops
+[depop-scrape] Scraping top category: Slippers
+[depop-scrape] Scraping top category: Brogues
+[depop-scrape] Scraping top category: Oxfords
+[depop-scrape] Scraping top category: Loafers
+[depop-scrape] Scraping top category: Boots
+[depop-scrape] Scraping top category: Boat shoes
+[depop-scrape] Scraping top category: Espadrilles
+[depop-scrape] Scraping top category: Ballet shoes
+[depop-scrape] Scraping top category: Clogs
+[depop-scrape] Scraping top category: Courts
+[depop-scrape] Scraping top category: Mules
+[depop-scrape] Scraping top category: Baby shoes
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Bags
+[depop-scrape] Scraping top category: Belts
+[depop-scrape] Scraping top category: Hats and caps
+[depop-scrape] Scraping top category: Gloves
+[depop-scrape] Scraping top category: Scarves and wraps
+[depop-scrape] Scraping top category: Sunglasses
+[depop-scrape] Scraping top category: Wallets and cardholders
+[depop-scrape] Scraping top category: Jewellery
+[depop-scrape] Scraping top category: Watches
+[depop-scrape] Scraping top category: Hair accessories
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Pyjamas
+[depop-scrape] Scraping top category: Robes
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Bandeaus
+[depop-scrape] Scraping top category: Bras
+[depop-scrape] Scraping top category: Panties
+[depop-scrape] Scraping top category: Shapewear
+[depop-scrape] Scraping top category: Boxers and briefs
+[depop-scrape] Scraping top category: Vests
+[depop-scrape] Scraping top category: Socks
+[depop-scrape] Scraping top category: Tights
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Bikini and tankini sets
+[depop-scrape] Scraping top category: Bikini and tankini tops
+[depop-scrape] Scraping top category: Bikini and tankini bottoms
+[depop-scrape] Scraping top category: Swimsuits
+[depop-scrape] Scraping top category: Swim briefs and shorts
+[depop-scrape] Scraping top category: Cover ups
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Fancy dress
+[depop-scrape] Scraping top category: T-shirts
+[depop-scrape] Scraping top category: Hoodies
+[depop-scrape] Scraping top category: Sweatshirts
+[depop-scrape] Scraping top category: Jumpers
+[depop-scrape] Scraping top category: Cardigans
+[depop-scrape] Scraping top category: Shirts
+[depop-scrape] Scraping top category: Polo shirts
+[depop-scrape] Scraping top category: Blouses
+[depop-scrape] Scraping top category: Crop tops
+[depop-scrape] Scraping top category: Vests
+[depop-scrape] Scraping top category: Corsets
+[depop-scrape] Scraping top category: Bodysuits
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Jeans
+[depop-scrape] Scraping top category: Sweatpants
+[depop-scrape] Scraping top category: Trousers
+[depop-scrape] Scraping top category: Shorts
+[depop-scrape] Scraping top category: Leggings
+[depop-scrape] Scraping top category: Skirts
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Casual dresses
+[depop-scrape] Scraping top category: Formal dresses
+[depop-scrape] Scraping top category: Going out dresses
+[depop-scrape] Scraping top category: Prom dresses
+[depop-scrape] Scraping top category: Summer dresses
+[depop-scrape] Scraping top category: Shift dresses
+[depop-scrape] Scraping top category: Shirt dresses
+[depop-scrape] Scraping top category: Wrap dresses
+[depop-scrape] Scraping top category: Babydoll dresses
+[depop-scrape] Scraping top category: Bodycon dresses
+[depop-scrape] Scraping top category: Work dresses
+[depop-scrape] Scraping top category: Wedding dresses
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Dresses
+[depop-scrape] Scraping top category: Coats
+[depop-scrape] Scraping top category: Jackets
+[depop-scrape] Scraping top category: Gilets
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Jumpsuits
+[depop-scrape] Scraping top category: Playsuits
+[depop-scrape] Scraping top category: Dungarees
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Suits
+[depop-scrape] Scraping top category: Tailored jackets
+[depop-scrape] Scraping top category: Tailored trousers
+[depop-scrape] Scraping top category: Waistcoats
+[depop-scrape] Scraping top category: Tuxedos
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Trainers
+[depop-scrape] Scraping top category: Slides
+[depop-scrape] Scraping top category: Sandals
+[depop-scrape] Scraping top category: Flip flops
+[depop-scrape] Scraping top category: Slippers
+[depop-scrape] Scraping top category: Brogues
+[depop-scrape] Scraping top category: Oxfords
+[depop-scrape] Scraping top category: Loafers
+[depop-scrape] Scraping top category: Boots
+[depop-scrape] Scraping top category: Boat shoes
+[depop-scrape] Scraping top category: Espadrilles
+[depop-scrape] Scraping top category: Ballet shoes
+[depop-scrape] Scraping top category: Clogs
+[depop-scrape] Scraping top category: Courts
+[depop-scrape] Scraping top category: Mules
+[depop-scrape] Scraping top category: Baby shoes
+[depop-scrape] Scraping top category: Other
+[depop-scrape] Scraping top category: Bags
+[depop-scrape] Scraping top category: Belts
+[depop-scrape] Scraping top category: Hats and caps
+[depop-scrape] Scraping top category: Gloves
+[depop-scrape] Scraping top category: Scarves and wraps
+[depop-scrape] Scraping top category: Sunglasses
+[depop-scrape] Scraping top category: Wallets and cardholders
+[depop-scrape] Scraping top category: Jewellery
+[depop-scrape] Scraping top category: Watches
+[depop-scrape] Scraping top category: Hair accessories
