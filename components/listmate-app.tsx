@@ -101,20 +101,14 @@ const DEPOP_CATEGORY_BY_POSHMARK: Record<string, string> = {
 
 const CONDITION_OPTIONS = [
   {
-    value: "NEW_WITH_TAGS",
-    label: "New with tags",
-    description: "Brand new, never worn, with original tags attached",
+    value: "BRAND_NEW",
+    label: "Brand New",
+    description: "Brand new condition with no wear.",
     platformMap: { poshmark: "New with tags", depop: "New" },
   },
   {
-    value: "NEW_WITHOUT_TAGS",
-    label: "New without tags",
-    description: "Never worn, but tags are missing",
-    platformMap: { poshmark: "New without tags", depop: "Like new" },
-  },
-  {
     value: "LIKE_NEW",
-    label: "Like new",
+    label: "Like New",
     description: "Worn once or twice, no visible flaws",
     platformMap: { poshmark: "Like new", depop: "Like new" },
   },
@@ -1433,6 +1427,90 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
     }
   }
 
+  async function removeFromAutomation(listing: Listing, platform: AutomationPlatform) {
+    const requestKey = `${listing.id}:${platform}:remove`;
+    const urlKey = PLATFORM_URL_KEY[platform];
+    const stateKey = PLATFORM_STATE_KEY[platform];
+    const listingUrl = listing[urlKey];
+
+    if (!listingUrl) {
+      return { ok: true, skipped: true as const };
+    }
+
+    setSendingMap((current) => ({
+      ...current,
+      [requestKey]: platform,
+    }));
+
+    try {
+      await db!.transact(
+        db!.tx.listings[listing.id].update({
+          [stateKey]: "remove_pending",
+        }),
+      );
+
+      const response = await fetch(`${automationBaseUrl}/${platform}/remove`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-listmate-user-id": sessionUser.id,
+        },
+        body: JSON.stringify({
+          userId: sessionUser.id,
+          listingId: listing.id,
+          url: listingUrl,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Removal failed with ${response.status}`);
+      }
+
+      await db!.transact(
+        db!.tx.listings[listing.id].update({
+          [stateKey]: "removed",
+        }),
+      );
+
+      return {
+        ok: true,
+        message: payload?.message || `Removed from ${PLATFORM_LABEL[platform]}.`,
+      };
+    } catch (error) {
+      const message =
+        error instanceof TypeError
+          ? getAutomationNetworkErrorMessage(automationBaseUrl)
+          : error instanceof Error
+            ? error.message
+            : "Removal request failed";
+
+      try {
+        await db!.transact(
+          db!.tx.listings[listing.id].update({
+            [stateKey]: "failed",
+          }),
+        );
+      } catch {
+        // Keep primary removal error surfaced even if state sync fails.
+      }
+
+      return {
+        ok: false,
+        message,
+      };
+    } finally {
+      setSendingMap((current) => ({
+        ...current,
+        [requestKey]: null,
+      }));
+    }
+  }
+
   async function updateStatus(listingId: string, status: ListingStatus) {
     await db!.transact(db!.tx.listings[listingId].update({ status }));
     setToast(status === "sold" ? "Marked as sold" : `Status: ${status}`);
@@ -1448,8 +1526,30 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
     setDeletingId(listingId);
 
     try {
+      const listing = listings.find((entry) => entry.id === listingId);
+
+      if (!listing) {
+        throw new Error("Listing was not found.");
+      }
+
+      const linkedPlatforms = (["poshmark", "depop", "ebay"] as const).filter((platform) => {
+        const urlKey = PLATFORM_URL_KEY[platform];
+        return Boolean(listing[urlKey]);
+      });
+
+      if (linkedPlatforms.length > 0) {
+        const results = await Promise.all(linkedPlatforms.map((platform) => removeFromAutomation(listing, platform)));
+        const failures = results.filter((result) => !result.ok);
+
+        if (failures.length > 0) {
+          throw new Error(failures.map((result) => result.message).join(" "));
+        }
+      }
+
       await db!.transact(db!.tx.listings[listingId].delete());
       setToast("Listing deleted");
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Listing deletion failed.");
     } finally {
       setDeletingId(null);
     }
