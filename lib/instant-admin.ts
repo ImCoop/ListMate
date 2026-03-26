@@ -125,6 +125,15 @@ export async function disableUserById(userId: string) {
   );
 }
 
+export async function updateUserRoleById(userId: string, role: AppRole) {
+  const db = getAdminDb();
+  await db.transact(
+    db.tx.app_users[userId].update({
+      role,
+    }),
+  );
+}
+
 export async function deleteUserById(userId: string) {
   const db = getAdminDb();
   await db.transact(db.tx.app_users[userId].delete());

@@ -478,6 +478,57 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
     }
   }
 
+  async function updateUserRole(userId: string, nextRole: AppRole) {
+    const existing = users.find((user) => user.id === userId);
+
+    if (!existing || existing.role === nextRole) {
+      return;
+    }
+
+    setBusyAction(`role-user:${userId}`);
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          role: nextRole,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        user?: UserListItem;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Could not update role.");
+      }
+
+      const updated = payload?.user;
+      if (!updated) {
+        return;
+      }
+
+      setUsers((current) =>
+        current.map((user) =>
+          user.id === userId
+            ? {
+                ...user,
+                role: updated.role,
+              }
+            : user,
+        ),
+      );
+      setToast(`Updated ${updated.username} to ${updated.role}`);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not update role.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function deleteUser(userId: string) {
     const confirmed = window.confirm("Delete this user permanently?");
 
@@ -591,18 +642,30 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
                       {user.username}
                       {user.id === sessionUser.id ? " (you)" : ""}
                     </p>
-                    <p className="text-xs uppercase tracking-[0.1em] text-ink/60">
-                      {user.role}
-                      {user.disabled ? " • disabled" : ""}
-                    </p>
+                    <p className="text-xs uppercase tracking-[0.1em] text-ink/60">{user.disabled ? "Disabled" : "Active"}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={user.role}
+                      onChange={(event) => void updateUserRole(user.id, event.target.value as AppRole)}
+                      disabled={
+                        busyAction === `role-user:${user.id}` ||
+                        busyAction === `disable-user:${user.id}` ||
+                        busyAction === `delete-user:${user.id}` ||
+                        user.id === sessionUser.id
+                      }
+                      className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:text-ink/40"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
                     <button
                       type="button"
                       onClick={() => disableUser(user.id)}
                       disabled={
                         user.disabled ||
                         user.id === sessionUser.id ||
+                        busyAction === `role-user:${user.id}` ||
                         busyAction === `disable-user:${user.id}` ||
                         busyAction === `delete-user:${user.id}`
                       }
@@ -615,6 +678,7 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
                       onClick={() => deleteUser(user.id)}
                       disabled={
                         user.id === sessionUser.id ||
+                        busyAction === `role-user:${user.id}` ||
                         busyAction === `disable-user:${user.id}` ||
                         busyAction === `delete-user:${user.id}`
                       }
