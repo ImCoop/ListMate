@@ -162,7 +162,7 @@ async function selectCategory(page, topCategory, subcategory) {
 
   if (subcategory) {
     const normalizedSubcategory = /^shirt$/i.test(String(subcategory).trim())
-      ? "Shirts"
+      ? "Shirt"
       : String(subcategory).trim();
 
     const trySelectSubcategory = async () => {
