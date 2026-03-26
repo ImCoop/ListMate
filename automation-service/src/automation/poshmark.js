@@ -132,7 +132,7 @@ async function fillDescriptionField(page, value) {
 
 async function selectCategory(page, topCategory, subcategory) {
   await page.locator(".dropdown__selector.dropdown__selector--select-tag").first().click();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
 
   const resolvedTopCategory = String(topCategory || "Women");
   const topCategoryCandidates = [
