@@ -16,7 +16,36 @@ function backoffMs(attempt) {
   return Math.min(5 * 60 * 1000, base * 2 ** Math.max(0, attempt - 1));
 }
 
+function normalizeState(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function shouldQueueRemovalForPlatform(event, platform) {
+  const stateKey = PLATFORM_STATE_KEY[platform];
+  const normalizedState = normalizeState(event[stateKey]);
+
+  if (normalizedState === "failed") {
+    return false;
+  }
+
+  if (normalizedState === "removed" || normalizedState === "sold") {
+    return false;
+  }
+
+  return normalizedState === "" || normalizedState === "active";
+}
+
 export function buildRemovalJobsFromSaleEvent(event, maxAttempts) {
+  const soldPlatform = String(event.soldOnPlatform || "").trim().toLowerCase();
+  if (["poshmark", "depop", "ebay"].includes(soldPlatform)) {
+    const soldStateKey = PLATFORM_STATE_KEY[soldPlatform];
+    const soldPlatformState = normalizeState(event[soldStateKey]);
+
+    if (soldPlatformState === "failed") {
+      return [];
+    }
+  }
+
   return PLATFORMS
     .filter((platform) => platform !== event.soldOnPlatform)
     .map((platform) => {
@@ -24,6 +53,10 @@ export function buildRemovalJobsFromSaleEvent(event, maxAttempts) {
       const url = event[urlField];
 
       if (!url) {
+        return null;
+      }
+
+      if (!shouldQueueRemovalForPlatform(event, platform)) {
         return null;
       }
 

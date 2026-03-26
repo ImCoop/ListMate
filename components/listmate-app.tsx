@@ -252,6 +252,20 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
   return size.replace(/^Waist\s+/i, "");
 }
 
+function mapCategoryForPlatform(category: string | undefined, platform: MarketplacePlatform) {
+  if (!category) {
+    return category;
+  }
+
+  const trimmed = category.trim();
+
+  if (platform === "poshmark" && /^shirt$/i.test(trimmed)) {
+    return "Shirts";
+  }
+
+  return trimmed;
+}
+
 function normalizeUrl(value: string) {
   return value.trim();
 }
@@ -1440,7 +1454,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           quantity: listing.quantity,
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
-          category: listing.category,
+          category: mapCategoryForPlatform(listing.category, platform),
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,

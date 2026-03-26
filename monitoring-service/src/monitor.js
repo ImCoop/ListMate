@@ -18,6 +18,19 @@ function getState(listing, platform) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function isFailedState(state) {
+  return state.toLowerCase() === "failed";
+}
+
+function isRemovedState(state) {
+  return state.toLowerCase() === "removed";
+}
+
+function isActiveLikeState(state) {
+  const normalized = state.toLowerCase();
+  return normalized === "" || normalized === "active";
+}
+
 function inferSoldPlatform(listing, unavailablePlatforms) {
   if (unavailablePlatforms.length === 1) {
     return unavailablePlatforms[0];
@@ -46,6 +59,7 @@ function buildSaleDetectedUpdate(listing, soldOnPlatform) {
   for (const platform of PLATFORMS) {
     const stateKey = PLATFORM_STATE_KEY[platform];
     const url = getUrl(listing, platform);
+    const state = getState(listing, platform);
 
     if (!url) {
       continue;
@@ -53,6 +67,10 @@ function buildSaleDetectedUpdate(listing, soldOnPlatform) {
 
     if (platform === soldOnPlatform) {
       updates[stateKey] = "sold";
+      continue;
+    }
+
+    if (!isActiveLikeState(state)) {
       continue;
     }
 
@@ -70,7 +88,7 @@ function hasAnyMonitorableUrl(listing) {
     }
 
     const state = getState(listing, platform);
-    return state !== "removed";
+    return !isRemovedState(state) && !isFailedState(state);
   });
 }
 
@@ -96,7 +114,7 @@ async function evaluateListing(listing, config) {
     }
 
     const state = getState(listing, platform);
-    if (state === "removed") {
+    if (isRemovedState(state) || isFailedState(state)) {
       continue;
     }
 
@@ -122,6 +140,18 @@ async function evaluateListing(listing, config) {
     return {
       soldDetected: false,
       listingId: listing.id,
+      checks,
+    };
+  }
+
+  const soldPlatformState = getState(listing, soldOnPlatform);
+  if (isFailedState(soldPlatformState)) {
+    clearListingCandidates(listing.id);
+    return {
+      soldDetected: false,
+      ignoredBecauseSoldPlatformFailed: true,
+      listingId: listing.id,
+      soldOnPlatform,
       checks,
     };
   }
@@ -155,8 +185,11 @@ async function evaluateListing(listing, config) {
     userId: typeof listing.createdByUserId === "string" ? listing.createdByUserId : "",
     soldOnPlatform,
     poshmarkUrl: getUrl(listing, "poshmark"),
+    poshmarkState: getState(listing, "poshmark"),
     depopUrl: getUrl(listing, "depop"),
+    depopState: getState(listing, "depop"),
     ebayUrl: getUrl(listing, "ebay"),
+    ebayState: getState(listing, "ebay"),
   };
   const removalJobs = buildRemovalJobsFromSaleEvent(event, config.maxAttempts);
   const createdJobs = removalJobs.length > 0 ? await enqueueJobs(removalJobs) : [];
