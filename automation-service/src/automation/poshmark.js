@@ -279,7 +279,8 @@ async function fillBrand(page, brand) {
 }
 
 export async function automatePoshmark(payload) {
-  const { context, page } = await createAutomationPage();
+  const userId = payload?.userId || "default";
+  const { context, page } = await createAutomationPage(userId);
   let tempDir = null;
 
   try {
@@ -290,6 +291,7 @@ export async function automatePoshmark(payload) {
       platform: "poshmark",
       loginUrl: POSHMARK_LOGIN_URL,
       readyCheck: createReadyCheck(),
+      userId,
     });
 
     await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
@@ -348,12 +350,13 @@ export async function automatePoshmark(payload) {
     };
   } finally {
     await cleanupTempDir(tempDir);
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, userId);
   }
 }
 
-export async function startPoshmarkManualLogin() {
-  const { context, page } = await createAutomationPage();
+export async function startPoshmarkManualLogin({ userId } = {}) {
+  const resolvedUserId = userId || "default";
+  const { context, page } = await createAutomationPage(resolvedUserId);
 
   try {
     logStep("poshmark", "Opening Poshmark login flow.");
@@ -363,6 +366,7 @@ export async function startPoshmarkManualLogin() {
       platform: "poshmark",
       loginUrl: POSHMARK_LOGIN_URL,
       readyCheck: createReadyCheck(),
+      userId: resolvedUserId,
     });
 
     return {
@@ -370,12 +374,13 @@ export async function startPoshmarkManualLogin() {
       message: "Poshmark login completed and session saved.",
     };
   } finally {
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, resolvedUserId);
   }
 }
 
-export async function removePoshmarkListing({ listingId, url }) {
+export async function removePoshmarkListing({ listingId, url, userId }) {
   const listingUrl = String(url || "").trim();
+  const resolvedUserId = userId || "default";
 
   if (!listingUrl) {
     return {
@@ -391,7 +396,7 @@ export async function removePoshmarkListing({ listingId, url }) {
     };
   }
 
-  const { context, page } = await createAutomationPage();
+  const { context, page } = await createAutomationPage(resolvedUserId);
 
   try {
     logStep("poshmark", `Opening listing for removal: ${listingUrl}`);
@@ -403,6 +408,7 @@ export async function removePoshmarkListing({ listingId, url }) {
         platform: "poshmark",
         loginUrl: POSHMARK_LOGIN_URL,
         readyCheck: async (currentPage) => !currentPage.url().includes("/login"),
+        userId: resolvedUserId,
       });
 
       await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
@@ -427,6 +433,6 @@ export async function removePoshmarkListing({ listingId, url }) {
       error: error instanceof Error ? error.message : "Poshmark listing removal failed.",
     };
   } finally {
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, resolvedUserId);
   }
 }

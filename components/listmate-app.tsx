@@ -373,6 +373,18 @@ function getListingImageUrls(listing: Partial<Listing>) {
   return Array.isArray(listing.imageUrls) ? listing.imageUrls : [];
 }
 
+function belongsToSessionUser(listing: Partial<Listing>, sessionUser: SessionUser) {
+  if (typeof listing.createdByUserId === "string" && listing.createdByUserId) {
+    return listing.createdByUserId === sessionUser.id;
+  }
+
+  if (typeof listing.createdByUsername === "string" && listing.createdByUsername) {
+    return listing.createdByUsername === sessionUser.username;
+  }
+
+  return false;
+}
+
 function statusTone(status: ListingStatus) {
   if (status === "sold") {
     return "bg-rose/15 text-rose";
@@ -1266,7 +1278,7 @@ function ListingCard({
   );
 }
 
-function ConnectedDashboard() {
+function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isExistingLinksSheetOpen, setIsExistingLinksSheetOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1277,7 +1289,9 @@ function ConnectedDashboard() {
   const [showSoldListings, setShowSoldListings] = useState(false);
 
   const { isLoading, error, data } = db!.useQuery({ listings: {} });
-  const listings = sortListings((data?.listings as Listing[] | undefined) ?? []);
+  const listings = sortListings(
+    ((data?.listings as Listing[] | undefined) ?? []).filter((listing) => belongsToSessionUser(listing, sessionUser)),
+  );
   const visibleListings = listings.filter((listing) => showSoldListings || listing.status !== "sold");
 
   useEffect(() => {
@@ -1305,6 +1319,8 @@ function ConnectedDashboard() {
               id: listingId,
               ...request.input,
               status: "draft",
+              createdByUserId: sessionUser.id,
+              createdByUsername: sessionUser.username,
               createdAt,
             }
           : {
@@ -1321,6 +1337,8 @@ function ConnectedDashboard() {
               poshmarkState: request.poshmarkUrl ? "active" : undefined,
               depopState: request.depopUrl ? "active" : undefined,
               ebayState: request.ebayUrl ? "active" : undefined,
+              createdByUserId: sessionUser.id,
+              createdByUsername: sessionUser.username,
               createdAt,
             };
 
@@ -1358,8 +1376,10 @@ function ConnectedDashboard() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-listmate-user-id": sessionUser.id,
         },
         body: JSON.stringify({
+          userId: sessionUser.id,
           listingId: listing.id,
           title: listing.title,
           description: listing.description,
@@ -1558,7 +1578,7 @@ export function ListMateApp({ sessionUser }: { sessionUser: SessionUser }) {
       </section>
 
       <section className="mt-5">
-        {hasInstantConfig ? <ConnectedDashboard /> : <SetupEmptyState />}
+        {hasInstantConfig ? <ConnectedDashboard sessionUser={sessionUser} /> : <SetupEmptyState />}
       </section>
     </main>
   );

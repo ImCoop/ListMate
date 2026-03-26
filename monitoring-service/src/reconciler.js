@@ -29,6 +29,7 @@ export function buildRemovalJobsFromSaleEvent(event, maxAttempts) {
 
       return {
         listingId: event.listingId,
+        userId: event.userId || "",
         soldOnPlatform: event.soldOnPlatform,
         targetPlatform: platform,
         url,
@@ -70,6 +71,7 @@ export async function processJob(job) {
     const result = await adapter({
       listingId: job.listingId,
       url: job.url,
+      userId: job.userId || "",
     });
 
     if (result?.ok) {

@@ -2,9 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
 
-const STORAGE_STATE_PATH = process.env.AUTOMATION_STORAGE_STATE_PATH
-  ? path.resolve(process.cwd(), process.env.AUTOMATION_STORAGE_STATE_PATH)
-  : path.resolve(process.cwd(), "storageState.json");
+const STORAGE_STATE_DIR = path.resolve(process.cwd(), process.env.AUTOMATION_STORAGE_STATE_DIR || "storage");
 const TMP_ROOT = path.resolve(process.cwd(), "tmp");
 
 let browserPromise;
@@ -25,37 +23,53 @@ export async function ensureBrowser() {
   return browserPromise;
 }
 
-export async function createAutomationContext() {
+function sanitizeUserId(userId) {
+  const normalized = String(userId || "default").trim().toLowerCase();
+  return normalized.replace(/[^a-z0-9_-]/g, "_").slice(0, 80) || "default";
+}
+
+async function ensureStorageStateDir() {
+  await fs.mkdir(STORAGE_STATE_DIR, { recursive: true });
+}
+
+function getStorageStatePath(userId) {
+  return path.join(STORAGE_STATE_DIR, `storage-state.${sanitizeUserId(userId)}.json`);
+}
+
+export async function createAutomationContext(userId = "default") {
+  await ensureStorageStateDir();
   const browser = await ensureBrowser();
-  const hasStorageState = await fileExists(STORAGE_STATE_PATH);
+  const storageStatePath = getStorageStatePath(userId);
+  const hasStorageState = await fileExists(storageStatePath);
 
   return browser.newContext(
     hasStorageState
       ? {
-          storageState: STORAGE_STATE_PATH,
+          storageState: storageStatePath,
         }
       : undefined,
   );
 }
 
-export async function createAutomationPage() {
-  const context = await createAutomationContext();
+export async function createAutomationPage(userId = "default") {
+  const context = await createAutomationContext(userId);
   const page = await context.newPage();
 
   return { context, page };
 }
 
-export async function saveStorageState(context) {
-  await context.storageState({ path: STORAGE_STATE_PATH });
+export async function saveStorageState(context, userId = "default") {
+  await ensureStorageStateDir();
+  await context.storageState({ path: getStorageStatePath(userId) });
 }
 
-export async function closeAutomationContext(context) {
+export async function closeAutomationContext(context, userId = "default") {
   if (!context) {
     return;
   }
 
   try {
-    await saveStorageState(context);
+    await saveStorageState(context, userId);
   } catch {
     // Best effort persistence.
   }
@@ -166,6 +180,7 @@ export async function ensureLoggedIn({
   platform,
   loginUrl,
   readyCheck,
+  userId = "default",
 }) {
   if (await readyCheck(page)) {
     return;
@@ -179,7 +194,7 @@ export async function ensureLoggedIn({
 
   while (Date.now() < timeoutAt) {
     if ((await readyCheck(page)) || !page.url().includes("/login")) {
-      await saveStorageState(page.context());
+      await saveStorageState(page.context(), userId);
       logStep(platform, "Session saved.");
       return;
     }
@@ -197,6 +212,7 @@ export async function authenticateWithMagicLink({
   readyCheck,
   successUrlPattern,
   postAuthUrl,
+  userId = "default",
 }) {
   if (!magicLink || !/^https?:\/\//i.test(magicLink)) {
     throw new Error("A valid magic link URL is required");
@@ -210,7 +226,7 @@ export async function authenticateWithMagicLink({
 
   while (Date.now() < timeoutAt) {
     if (await readyCheck(page)) {
-      await saveStorageState(page.context());
+      await saveStorageState(page.context(), userId);
       logStep(platform, "Magic link accepted. Session saved.");
       return;
     }
@@ -223,12 +239,12 @@ export async function authenticateWithMagicLink({
         await page.waitForTimeout(1500);
 
         if (await readyCheck(page)) {
-          await saveStorageState(page.context());
+          await saveStorageState(page.context(), userId);
           logStep(platform, "Magic link accepted. Session saved.");
           return;
         }
       } else {
-        await saveStorageState(page.context());
+        await saveStorageState(page.context(), userId);
         logStep(platform, "Magic link accepted. Session saved.");
         return;
       }

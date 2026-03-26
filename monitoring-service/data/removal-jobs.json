@@ -73,5 +73,20 @@
     "targetPlatform": "depop",
     "url": "https://www.depop.com/products/imcoo5-pants-theyr-ecool-d11f/manage/",
     "maxAttempts": 5
+  },
+  {
+    "id": "c48d3749-ca38-4e7a-baf7-5878d2200743",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774474926036,
+    "updatedAt": 1774474941034,
+    "lastAttemptAt": 1774474928542,
+    "nextAttemptAt": 1774474926036,
+    "error": null,
+    "listingId": "fdc0e8b6-654f-48b4-8560-faa94b635abe",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/imcoos-pants-they-re-cool-0c05/manage/",
+    "maxAttempts": 5
   }
 ]

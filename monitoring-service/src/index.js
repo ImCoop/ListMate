@@ -144,6 +144,7 @@ app.post("/events/sale-detected", async (request, response) => {
   const listingId = String(request.body.listingId).trim();
   const event = {
     listingId,
+    userId: typeof request.body.userId === "string" ? request.body.userId.trim() : "",
     soldOnPlatform,
     poshmarkUrl: typeof request.body.poshmarkUrl === "string" ? request.body.poshmarkUrl.trim() : "",
     depopUrl: typeof request.body.depopUrl === "string" ? request.body.depopUrl.trim() : "",

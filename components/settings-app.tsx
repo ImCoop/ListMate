@@ -116,7 +116,13 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
 
   const callAutomation = useCallback(async (path: string, init?: RequestInit) => {
     try {
-      const response = await fetch(`${automationBaseUrl}${path}`, init);
+      const response = await fetch(`${automationBaseUrl}${path}`, {
+        ...init,
+        headers: {
+          ...(init?.headers || {}),
+          "x-listmate-user-id": sessionUser.id,
+        },
+      });
       const payload = (await response.json().catch(() => null)) as { ok?: boolean; error?: string; message?: string } | null;
 
       if (!response.ok) {
@@ -131,7 +137,7 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
 
       throw error;
     }
-  }, [automationBaseUrl]);
+  }, [automationBaseUrl, sessionUser.id]);
 
   const callMonitoring = useCallback(async (path: string, init?: RequestInit) => {
     try {
@@ -359,7 +365,7 @@ export function SettingsApp({ sessionUser }: { sessionUser: SessionUser }) {
   }
 
   function connectEbayApi() {
-    window.open(`${automationBaseUrl}/ebay/connect`, "_blank", "noopener,noreferrer");
+    window.open(`${automationBaseUrl}/ebay/connect?userId=${encodeURIComponent(sessionUser.id)}`, "_blank", "noopener,noreferrer");
     setToast("Finish eBay consent in the opened tab, then refresh eBay status.");
   }
 
