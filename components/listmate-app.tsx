@@ -151,7 +151,7 @@ const PLATFORM_STATE_KEY: Record<MarketplacePlatform, "poshmarkState" | "depopSt
 };
 
 function getTopCategoryOptions() {
-  return POSHMARK_CATEGORY_TREE.map((entry) => entry.topCategory);
+  return POSHMARK_CATEGORY_TREE.map((entry) => entry.topCategory).filter((entry) => entry !== "Kids");
 }
 
 function getSubcategoryOptions(topCategory: PoshmarkTopCategory) {
