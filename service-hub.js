@@ -139,6 +139,9 @@ function loadConfig(targetPath) {
   const updatesMonitoringInstallCommand =
     parsed?.updates?.monitoringInstallCommand || "npm install";
   const updatesBuildCommand = parsed?.updates?.buildCommand || "npm run build";
+  const frontendCommand = isProd
+    ? parsed?.services?.frontend?.prodCommand || parsed?.services?.frontend?.command || "npm run start"
+    : parsed?.services?.frontend?.devCommand || "npm run dev";
 
   return {
     instanceName: parsed?.instanceName || "listmate-instance",
@@ -149,7 +152,7 @@ function loadConfig(targetPath) {
     },
     frontend: {
       cwd: path.resolve(process.cwd(), parsed?.services?.frontend?.cwd || "."),
-      command: parsed?.services?.frontend?.command || (isProd ? "npm run start" : "npm run dev"),
+      command: frontendCommand,
       healthUrl: frontendBaseUrl,
       env: {
         PORT: String(frontendPort),

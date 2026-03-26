@@ -166,6 +166,8 @@ Frontend (`/`):
 - `npm run start` - run production build
 - `npm run lint` - run ESLint
 - `npm run typecheck` - run TypeScript checks
+- `npm run hub:dev` - run service hub (dev frontend command)
+- `npm run hub:prod` - run service hub (prod frontend command)
 
 Automation (`/automation-service`):
 
@@ -211,7 +213,7 @@ Use a single config file to run frontend + automation + monitoring together:
 ### Start all services from one window
 
 ```bash
-npm run hub
+npm run hub:dev
 ```
 
 Production frontend mode:

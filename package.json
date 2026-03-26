@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "status": "node service-status.js",
-    "hub": "node service-hub.js",
+    "hub:dev": "node service-hub.js",
     "hub:prod": "node service-hub.js --prod"
   },
   "dependencies": {

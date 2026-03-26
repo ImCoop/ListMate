@@ -21,7 +21,8 @@
   "services": {
     "frontend": {
       "cwd": ".",
-      "command": "npm run start",
+      "devCommand": "npm run dev",
+      "prodCommand": "npm run start",
       "env": {}
     },
     "automation": {

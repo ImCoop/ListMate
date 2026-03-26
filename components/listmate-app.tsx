@@ -461,6 +461,16 @@ function NoVisibleListings() {
   );
 }
 
+function NoSearchMatches({ query }: { query: string }) {
+  return (
+    <div className="rounded-[2rem] border border-dashed border-clay/30 bg-white/70 p-8 text-center shadow-card">
+      <p className="text-sm font-medium uppercase tracking-[0.25em] text-clay">No matching listings</p>
+      <h2 className="mt-2 text-2xl font-semibold text-ink">No results for "{query}".</h2>
+      <p className="mt-3 text-sm leading-6 text-ink/70">Try a different title search or clear the search field.</p>
+    </div>
+  );
+}
+
 async function fileToDataUrl(file: File) {
   const imageUrl = URL.createObjectURL(file);
 
@@ -1287,12 +1297,23 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [automationBaseUrl, setAutomationBaseUrl] = useState(readAutomationBaseUrl);
   const [showSoldListings, setShowSoldListings] = useState(false);
+  const [listingSearch, setListingSearch] = useState("");
 
   const { isLoading, error, data } = db!.useQuery({ listings: {} });
   const listings = sortListings(
     ((data?.listings as Listing[] | undefined) ?? []).filter((listing) => belongsToSessionUser(listing, sessionUser)),
   );
-  const visibleListings = listings.filter((listing) => showSoldListings || listing.status !== "sold");
+  const normalizedSearch = listingSearch.trim().toLowerCase();
+  const visibleListings = listings
+    .filter((listing) => showSoldListings || listing.status !== "sold")
+    .filter((listing) => {
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const title = typeof listing.title === "string" ? listing.title.trim().toLowerCase() : "";
+      return title.includes(normalizedSearch);
+    });
 
   useEffect(() => {
     if (!toast) {
@@ -1465,6 +1486,23 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
   return (
     <>
       <div className="space-y-4">
+        <div className="rounded-[1.6rem] border border-white/80 bg-white/85 p-4 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/65">
+              Total Listings: {isLoading ? "--" : listings.length}
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/55">
+              Showing: {isLoading ? "--" : visibleListings.length}
+            </p>
+          </div>
+          <input
+            value={listingSearch}
+            onChange={(event) => setListingSearch(event.target.value)}
+            placeholder="Search listing name..."
+            className="mt-3 w-full rounded-[1rem] border border-ink/10 bg-white px-4 py-3 text-sm text-ink outline-none transition focus:border-clay"
+          />
+        </div>
+
         {error ? (
           <div className="rounded-[2rem] border border-rose/20 bg-white/80 p-6 text-sm text-rose shadow-card">
             Unable to load listings. Check your InstantDB app ID and permissions.
@@ -1472,7 +1510,11 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
         ) : null}
 
         {isLoading ? <LoadingState /> : listings.length > 0 ? null : <EmptyListings />}
-        {!isLoading && listings.length > 0 && visibleListings.length === 0 ? <NoVisibleListings /> : null}
+        {!isLoading && listings.length > 0 && visibleListings.length === 0
+          ? normalizedSearch
+            ? <NoSearchMatches query={listingSearch.trim()} />
+            : <NoVisibleListings />
+          : null}
 
         {!isLoading &&
           visibleListings.map((listing) => (
