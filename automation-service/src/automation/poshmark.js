@@ -13,6 +13,16 @@ import {
 const POSHMARK_CREATE_URL = "https://poshmark.com/sell";
 const POSHMARK_LOGIN_URL = "https://poshmark.com/login";
 
+async function assertNoPageNotFound(page, contextLabel) {
+  const title = String(await page.title().catch(() => "")).trim();
+
+  if (/page not found/i.test(title)) {
+    throw new Error(
+      `Poshmark returned a Page Not Found screen${contextLabel ? ` (${contextLabel})` : ""}. URL: ${page.url()}`,
+    );
+  }
+}
+
 function normalizeUrl(value) {
   return String(value || "").split("#")[0].split("?")[0];
 }
@@ -286,6 +296,7 @@ export async function automatePoshmark(payload) {
   try {
     logStep("poshmark", "Opening create listing page.");
     await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
+    await assertNoPageNotFound(page, "open create listing");
     await ensureLoggedIn({
       page,
       platform: "poshmark",
@@ -295,6 +306,7 @@ export async function automatePoshmark(payload) {
     });
 
     await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
+    await assertNoPageNotFound(page, "open create listing after login");
     await openSellComposer(page);
     await randomDelay(page);
 
@@ -361,6 +373,7 @@ export async function startPoshmarkManualLogin({ userId } = {}) {
   try {
     logStep("poshmark", "Opening Poshmark login flow.");
     await page.goto(POSHMARK_CREATE_URL, { waitUntil: "domcontentloaded" });
+    await assertNoPageNotFound(page, "manual login start");
     await ensureLoggedIn({
       page,
       platform: "poshmark",
@@ -401,6 +414,7 @@ export async function removePoshmarkListing({ listingId, url, userId }) {
   try {
     logStep("poshmark", `Opening listing for removal: ${listingUrl}`);
     await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
+    await assertNoPageNotFound(page, "open listing for removal");
 
     if (page.url().includes("/login")) {
       await ensureLoggedIn({
@@ -412,6 +426,7 @@ export async function removePoshmarkListing({ listingId, url, userId }) {
       });
 
       await page.goto(listingUrl, { waitUntil: "domcontentloaded" });
+      await assertNoPageNotFound(page, "open listing for removal after login");
     }
 
     logStep("poshmark", "Opening edit listing menu.");
