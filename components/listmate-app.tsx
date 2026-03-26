@@ -252,7 +252,11 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
   return size.replace(/^Waist\s+/i, "");
 }
 
-function mapCategoryForPlatform(category: string | undefined, platform: MarketplacePlatform) {
+function mapCategoryForPlatform(
+  category: string | undefined,
+  platform: MarketplacePlatform,
+  topCategory: string | undefined,
+) {
   if (!category) {
     return category;
   }
@@ -260,6 +264,10 @@ function mapCategoryForPlatform(category: string | undefined, platform: Marketpl
   const trimmed = category.trim();
 
   if (platform === "poshmark" && /^shirt$/i.test(trimmed)) {
+    if (/^men$/i.test(String(topCategory || "").trim())) {
+      return "Men Shirts";
+    }
+
     return "Shirts";
   }
 
@@ -1454,7 +1462,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           quantity: listing.quantity,
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
-          category: mapCategoryForPlatform(listing.category, platform),
+          category: mapCategoryForPlatform(listing.category, platform, listing.topCategory),
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,
