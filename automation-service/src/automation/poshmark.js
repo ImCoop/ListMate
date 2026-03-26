@@ -190,44 +190,128 @@ async function fillDescriptionField(page, value) {
 }
 
 async function selectCategory(page, topCategory, subcategory) {
-  await page.locator(".dropdown__selector.dropdown__selector--select-tag").first().click();
-  await page.waitForTimeout(1000);
+  const categoryDropdown = page.locator(".dropdown__selector.dropdown__selector--select-tag").first();
+  const openCategoryDropdown = async () => {
+    await categoryDropdown.click();
+    await page.waitForTimeout(300);
+  };
+
+  const tryClickExactListValue = async (value) => {
+    const exactPattern = new RegExp(`^\\s*${escapeRegExp(String(value).trim())}\\s*$`, "i");
+    const candidates = [
+      page.getByRole("link", { name: exactPattern }).first(),
+      page.getByRole("listitem", { name: exactPattern }).first(),
+      page.getByRole("option", { name: exactPattern }).first(),
+      page.locator("a").filter({ hasText: exactPattern }).first(),
+      page.locator("li").filter({ hasText: exactPattern }).first(),
+      page.getByText(exactPattern).first(),
+    ];
+
+    for (const candidate of candidates) {
+      try {
+        if (await candidate.isVisible({ timeout: 900 })) {
+          await candidate.scrollIntoViewIfNeeded().catch(() => {});
+          await candidate.click({ timeout: 3000 });
+          return true;
+        }
+      } catch {
+        // Try next selector.
+      }
+    }
+
+    return false;
+  };
+
+  const dropdownContainsText = async (value) => {
+    const pattern = new RegExp(escapeRegExp(String(value).trim()), "i");
+    try {
+      const text = await categoryDropdown.innerText({ timeout: 1200 });
+      return pattern.test(text);
+    } catch {
+      return false;
+    }
+  };
+
+  const isSubcategoryVisibleInOpenList = async (value) => {
+    const exactPattern = new RegExp(`^\\s*${escapeRegExp(String(value).trim())}\\s*$`, "i");
+    const candidates = [
+      page.getByRole("listitem").filter({ hasText: exactPattern }).first(),
+      page.getByRole("option", { name: exactPattern }).first(),
+      page.locator("li").filter({ hasText: exactPattern }).first(),
+      page.locator("a").filter({ hasText: exactPattern }).first(),
+      page.getByText(exactPattern).first(),
+    ];
+
+    for (const candidate of candidates) {
+      try {
+        if (await candidate.isVisible({ timeout: 900 })) {
+          return true;
+        }
+      } catch {
+        // Try next selector.
+      }
+    }
+
+    return false;
+  };
+
+  await openCategoryDropdown();
 
   const resolvedTopCategory = String(topCategory || "Women");
-  const topCategoryCandidates = [
-    page.locator("a").filter({ hasText: resolvedTopCategory }).first(),
-    page.getByRole("link", { name: new RegExp(`^${escapeRegExp(resolvedTopCategory)}$`, "i") }).first(),
-    page.getByText(resolvedTopCategory, { exact: true }).first(),
-  ];
-
-  let selectedTopCategory = false;
-  for (const candidate of topCategoryCandidates) {
-    try {
-      if (await candidate.isVisible({ timeout: 1200 })) {
-        await candidate.click({ timeout: 2500 });
-        selectedTopCategory = true;
-        break;
-      }
-    } catch {
-      // Try next selector.
-    }
+  if (!(await tryClickExactListValue(resolvedTopCategory))) {
+    throw new Error(`Unable to select Poshmark top category "${resolvedTopCategory}".`);
   }
 
-  if (!selectedTopCategory) {
-    await page.locator("a").nth(3).click();
-  }
-
-  await page.waitForTimeout(500);
+  // Give Poshmark time to load the second-level leaf list after top-level selection.
+  await page.waitForTimeout(1000);
 
   if (subcategory) {
-    const normalizedSubcategory = /^shirt$/i.test(String(subcategory).trim())
-      ? "Shirt"
-      : String(subcategory).trim();
+    const normalizedSubcategory = String(subcategory).trim();
+
+    if (!(await isSubcategoryVisibleInOpenList(normalizedSubcategory))) {
+      // Retry top-category selection once in case the menu did not switch levels.
+      await openCategoryDropdown();
+      if (!(await tryClickExactListValue(resolvedTopCategory))) {
+        throw new Error(`Unable to re-select Poshmark top category "${resolvedTopCategory}".`);
+      }
+      await page.waitForTimeout(1000);
+    }
+
+    const trySelectSubcategory = async () => {
+      const subcategoryCandidates = [
+        page.getByRole("listitem").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.getByRole("option", { name: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.getByRole("button", { name: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.locator("li").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.locator("a").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
+        page.getByText(new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i")).first(),
+      ];
+
+      for (const candidate of subcategoryCandidates) {
+        try {
+          if (await candidate.isVisible({ timeout: 1200 })) {
+            await candidate.scrollIntoViewIfNeeded().catch(() => {});
+            await candidate.click({ timeout: 3000 });
+            await page.waitForTimeout(350);
+            if (await dropdownContainsText(normalizedSubcategory)) {
+              return true;
+            }
+          }
+        } catch {
+          // Try next selector.
+        }
+      }
+
+      return false;
+    };
+
+    if (await trySelectSubcategory()) {
+      return;
+    }
 
     const topKey = normalizeCategoryKey(resolvedTopCategory);
     const leafKey = normalizeCategoryKey(normalizedSubcategory);
     const mappedIndex = POSHMARK_CATEGORY_INDEX_MAP?.[topKey]?.[leafKey];
-
     if (Number.isInteger(mappedIndex) && mappedIndex >= 0) {
       try {
         const firstLeafCandidates = [
@@ -256,45 +340,22 @@ async function selectCategory(page, topCategory, subcategory) {
         }
 
         await page.keyboard.press("Enter");
-        await page.waitForTimeout(300);
-        return;
-      } catch {
-        // Fall back to selector-based text matching below.
-      }
-    }
-
-    const trySelectSubcategory = async () => {
-      const subcategoryCandidates = [
-        page.getByRole("listitem").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
-        page.getByRole("option", { name: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
-        page.getByRole("button", { name: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
-        page.locator("li").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
-        page.locator("a").filter({ hasText: new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i") }).first(),
-        page.getByText(new RegExp(`^\\s*${escapeRegExp(normalizedSubcategory)}\\s*$`, "i")).first(),
-      ];
-
-      for (const candidate of subcategoryCandidates) {
-        try {
-          if (await candidate.isVisible({ timeout: 1200 })) {
-            await candidate.scrollIntoViewIfNeeded().catch(() => {});
-            await candidate.click({ timeout: 3000 });
-            return true;
-          }
-        } catch {
-          // Try next selector.
+        await page.waitForTimeout(400);
+        if (await dropdownContainsText(normalizedSubcategory)) {
+          return;
         }
+      } catch {
+        // Fall through to final retry below.
       }
-
-      return false;
-    };
-
-    if (await trySelectSubcategory()) {
-      return;
     }
 
     // Retry once after reopening selector to handle intermittent popup rerender.
-    await page.locator(".dropdown__selector.dropdown__selector--select-tag").first().click();
+    await openCategoryDropdown();
     await page.waitForTimeout(400);
+    if (!(await tryClickExactListValue(resolvedTopCategory))) {
+      throw new Error(`Unable to re-open top category "${resolvedTopCategory}" during retry.`);
+    }
+    await page.waitForTimeout(1000);
     if (await trySelectSubcategory()) {
       return;
     }
