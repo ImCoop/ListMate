@@ -17,7 +17,7 @@ import { loadLocalEnv } from "./env.js";
 loadLocalEnv();
 
 const app = express();
-const PORT = 3001;
+const PORT = Number(process.env.AUTOMATION_PORT || process.env.PORT || 3001);
 
 app.use(
   cors({
@@ -28,6 +28,7 @@ app.use(express.json({ limit: "50mb" }));
 
 function normalizePayload(body = {}) {
   return {
+    userId: body.userId || "",
     listingId: body.listingId || "",
     title: body.title || "",
     description: body.description || "",
@@ -56,9 +57,19 @@ function validatePayload(payload) {
 
 function normalizeRemovalPayload(body = {}) {
   return {
+    userId: body.userId || "",
     listingId: body.listingId || "",
     url: body.url || "",
   };
+}
+
+function resolveUserId(request) {
+  const raw =
+    request.headers["x-listmate-user-id"] ||
+    request.query.userId ||
+    request.body?.userId ||
+    "default";
+  return String(raw).trim() || "default";
 }
 
 app.get("/health", (_request, response) => {
@@ -66,7 +77,10 @@ app.get("/health", (_request, response) => {
 });
 
 app.post("/poshmark", async (request, response) => {
-  const payload = normalizePayload(request.body);
+  const payload = normalizePayload({
+    ...request.body,
+    userId: resolveUserId(request),
+  });
   const validationError = validatePayload(payload);
 
   if (validationError) {
@@ -86,10 +100,10 @@ app.post("/poshmark", async (request, response) => {
   }
 });
 
-app.post("/poshmark/login", async (_request, response) => {
+app.post("/poshmark/login", async (request, response) => {
   try {
     logStep("poshmark", "Manual login request received.");
-    const result = await startPoshmarkManualLogin();
+    const result = await startPoshmarkManualLogin({ userId: resolveUserId(request) });
     response.json(result);
   } catch (error) {
     logError("poshmark", error);
@@ -100,7 +114,10 @@ app.post("/poshmark/login", async (_request, response) => {
 });
 
 app.post("/poshmark/remove", async (request, response) => {
-  const payload = normalizeRemovalPayload(request.body);
+  const payload = normalizeRemovalPayload({
+    ...request.body,
+    userId: resolveUserId(request),
+  });
 
   try {
     logStep("poshmark", "Removal request received.");
@@ -121,7 +138,10 @@ app.post("/poshmark/remove", async (request, response) => {
 });
 
 app.post("/depop", async (request, response) => {
-  const payload = normalizePayload(request.body);
+  const payload = normalizePayload({
+    ...request.body,
+    userId: resolveUserId(request),
+  });
   const validationError = validatePayload(payload);
 
   if (validationError) {
@@ -141,10 +161,10 @@ app.post("/depop", async (request, response) => {
   }
 });
 
-app.post("/depop/login", async (_request, response) => {
+app.post("/depop/login", async (request, response) => {
   try {
     logStep("depop", "Manual login request received.");
-    const result = await startDepopManualLogin();
+    const result = await startDepopManualLogin({ userId: resolveUserId(request) });
     response.json(result);
   } catch (error) {
     logError("depop", error);
@@ -155,7 +175,10 @@ app.post("/depop/login", async (_request, response) => {
 });
 
 app.post("/depop/remove", async (request, response) => {
-  const payload = normalizeRemovalPayload(request.body);
+  const payload = normalizeRemovalPayload({
+    ...request.body,
+    userId: resolveUserId(request),
+  });
 
   try {
     logStep("depop", "Removal request received.");
@@ -176,7 +199,10 @@ app.post("/depop/remove", async (request, response) => {
 });
 
 app.post("/ebay", async (request, response) => {
-  const payload = normalizePayload(request.body);
+  const payload = normalizePayload({
+    ...request.body,
+    userId: resolveUserId(request),
+  });
   const validationError = validatePayload(payload);
 
   if (validationError) {
@@ -196,10 +222,10 @@ app.post("/ebay", async (request, response) => {
   }
 });
 
-app.post("/ebay/login", async (_request, response) => {
+app.post("/ebay/login", async (request, response) => {
   try {
     logStep("ebay", "Manual login request received.");
-    const result = await startEbayManualLogin();
+    const result = await startEbayManualLogin({ userId: resolveUserId(request) });
     response.json(result);
   } catch (error) {
     logError("ebay", error);
@@ -210,7 +236,10 @@ app.post("/ebay/login", async (_request, response) => {
 });
 
 app.post("/ebay/remove", async (request, response) => {
-  const payload = normalizeRemovalPayload(request.body);
+  const payload = normalizeRemovalPayload({
+    ...request.body,
+    userId: resolveUserId(request),
+  });
 
   try {
     logStep("ebay", "Removal request received.");
@@ -230,9 +259,9 @@ app.post("/ebay/remove", async (request, response) => {
   }
 });
 
-app.get("/ebay/status", async (_request, response) => {
+app.get("/ebay/status", async (request, response) => {
   try {
-    const result = await getEbayStatus();
+    const result = await getEbayStatus({ userId: resolveUserId(request) });
     response.json(result);
   } catch (error) {
     logError("ebay", error);
@@ -245,7 +274,7 @@ app.get("/ebay/status", async (_request, response) => {
 app.get("/ebay/connect", (request, response) => {
   try {
     logStep("ebay", "OAuth connect request received.");
-    const url = getEbayConsentUrl();
+    const url = getEbayConsentUrl(resolveUserId(request));
     response.redirect(url);
   } catch (error) {
     logError("ebay", error);
@@ -284,7 +313,7 @@ app.post("/depop/auth-link", async (request, response) => {
 
   try {
     logStep("depop", "Magic-link auth request received.");
-    const result = await authenticateDepopMagicLink(magicLink);
+    const result = await authenticateDepopMagicLink(magicLink, { userId: resolveUserId(request) });
     response.json(result);
   } catch (error) {
     logError("depop", error);

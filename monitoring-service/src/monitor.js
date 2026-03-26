@@ -118,6 +118,7 @@ async function evaluateListing(listing, config) {
 
   const event = {
     listingId: listing.id,
+    userId: typeof listing.createdByUserId === "string" ? listing.createdByUserId : "",
     soldOnPlatform,
     poshmarkUrl: getUrl(listing, "poshmark"),
     depopUrl: getUrl(listing, "depop"),

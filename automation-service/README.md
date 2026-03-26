@@ -58,6 +58,7 @@ http://localhost:3001/ebay/oauth/callback
 
 - The browser always runs headful.
 - Poshmark and Depop use a visible browser. eBay does not; it uses the Inventory API, Account API, Taxonomy API, and eBay Picture Services.
+- Playwright and eBay token persistence are now per-app-user when requests include `x-listmate-user-id`.
 - Poshmark upload handling confirms the photo editor's `Apply`/`Next` step before filling the listing form.
 - Uploaded photos are written to a temporary folder and deleted after Playwright hands them to the page.
 - eBay API listings require business policies and at least one enabled inventory location in the connected seller account.

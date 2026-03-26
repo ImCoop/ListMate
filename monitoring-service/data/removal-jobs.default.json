@@ -1,0 +1,34 @@
+[
+  {
+    "id": "5d8fb1aa-7c77-4123-b434-73ec5a60984a",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774492536974,
+    "updatedAt": 1774492558826,
+    "lastAttemptAt": 1774492539517,
+    "nextAttemptAt": 1774492536974,
+    "error": null,
+    "listingId": "9e5d1160-8d9e-4004-b6ee-2f4ee82ca80a",
+    "userId": "0ec30402-a3c6-4a29-aae2-c4b4ddcba746",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/imcozp-pants-test-listing-8a39/manage/",
+    "maxAttempts": 5
+  },
+  {
+    "id": "91190eeb-f981-47e3-983a-772943517bc4",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774493851915,
+    "updatedAt": 1774493875870,
+    "lastAttemptAt": 1774493856603,
+    "nextAttemptAt": 1774493851915,
+    "error": null,
+    "listingId": "26825584-2357-4200-9ce5-e464163f520f",
+    "userId": "0ec30402-a3c6-4a29-aae2-c4b4ddcba746",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/imboop-pants-clean-new-pants-98f3/manage/",
+    "maxAttempts": 5
+  }
+]

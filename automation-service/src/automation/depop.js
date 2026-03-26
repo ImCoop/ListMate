@@ -307,7 +307,8 @@ async function selectDepopPackageSize(page, payload) {
 }
 
 export async function automateDepop(payload) {
-  const { context, page } = await createAutomationPage();
+  const userId = payload?.userId || "default";
+  const { context, page } = await createAutomationPage(userId);
   let tempDir = null;
 
   try {
@@ -361,12 +362,13 @@ export async function automateDepop(payload) {
     };
   } finally {
     await cleanupTempDir(tempDir);
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, userId);
   }
 }
 
-export async function startDepopManualLogin() {
-  const { context, page } = await createAutomationPage();
+export async function startDepopManualLogin({ userId } = {}) {
+  const resolvedUserId = userId || "default";
+  const { context, page } = await createAutomationPage(resolvedUserId);
 
   try {
     logStep("depop", "Opening Depop login flow.");
@@ -381,12 +383,13 @@ export async function startDepopManualLogin() {
       message: "Depop login completed and session saved.",
     };
   } finally {
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, resolvedUserId);
   }
 }
 
-export async function authenticateDepopMagicLink(magicLink) {
-  const { context, page } = await createAutomationPage();
+export async function authenticateDepopMagicLink(magicLink, { userId } = {}) {
+  const resolvedUserId = userId || "default";
+  const { context, page } = await createAutomationPage(resolvedUserId);
 
   try {
     await authenticateWithMagicLink({
@@ -396,6 +399,7 @@ export async function authenticateDepopMagicLink(magicLink) {
       readyCheck: isDepopSessionReady,
       successUrlPattern: /depop\.com\/(sell|products|feed|home|login\/magic-link)/i,
       postAuthUrl: DEPOP_HOME_URL,
+      userId: resolvedUserId,
     });
 
     return {
@@ -403,12 +407,13 @@ export async function authenticateDepopMagicLink(magicLink) {
       message: "Depop session authenticated from the pasted magic link.",
     };
   } finally {
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, resolvedUserId);
   }
 }
 
-export async function removeDepopListing({ listingId, url }) {
+export async function removeDepopListing({ listingId, url, userId }) {
   const listingUrl = normalizeUrl(url);
+  const resolvedUserId = userId || "default";
 
   if (!listingUrl) {
     return {
@@ -424,7 +429,7 @@ export async function removeDepopListing({ listingId, url }) {
     };
   }
 
-  const { context, page } = await createAutomationPage();
+  const { context, page } = await createAutomationPage(resolvedUserId);
 
   try {
     await ensureDepopSession(page);
@@ -469,6 +474,6 @@ export async function removeDepopListing({ listingId, url }) {
       error: error instanceof Error ? error.message : "Depop listing removal failed.",
     };
   } finally {
-    await closeAutomationContext(context);
+    await closeAutomationContext(context, resolvedUserId);
   }
 }

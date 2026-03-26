@@ -15,7 +15,7 @@ function readAutomationBaseUrls() {
   return [...new Set(candidates)];
 }
 
-export async function removeViaAutomation({ platform, listingId, url }) {
+export async function removeViaAutomation({ platform, listingId, url, userId }) {
   const baseUrls = readAutomationBaseUrls();
 
   if (!baseUrls.length) {
@@ -35,6 +35,7 @@ export async function removeViaAutomation({ platform, listingId, url }) {
           "content-type": "application/json",
         },
         body: JSON.stringify({
+          userId,
           listingId,
           url,
         }),

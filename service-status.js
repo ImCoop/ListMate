@@ -1,16 +1,54 @@
 #!/usr/bin/env node
 "use strict";
 
-const DEFAULT_FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const DEFAULT_AUTOMATION_BASE_URL = process.env.AUTOMATION_URL || "http://localhost:3001";
-const DEFAULT_MONITORING_BASE_URL = process.env.MONITORING_URL || "http://localhost:3010";
-const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS || 5000);
-const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 4000);
-const ONCE = process.argv.includes("--once");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const args = process.argv.slice(2);
+const ONCE = args.includes("--once");
+const configArgIndex = args.indexOf("--config");
+const configPathArg = configArgIndex >= 0 ? args[configArgIndex + 1] : null;
+const configPath = path.resolve(process.cwd(), configPathArg || "service-instance.config.json");
 
 function normalizeBaseUrl(value) {
   return String(value || "").trim().replace(/\/$/, "");
 }
+
+function loadConfig(targetPath) {
+  const raw = fs.readFileSync(targetPath, "utf8");
+  const parsed = JSON.parse(raw);
+  const host = parsed?.network?.host || "127.0.0.1";
+  const ports = {
+    frontend: Number(parsed?.ports?.frontend || 3000),
+    automation: Number(parsed?.ports?.automation || 3001),
+    monitoring: Number(parsed?.ports?.monitoring || 3010),
+  };
+  return {
+    instanceName: parsed?.instanceName || "listmate-instance",
+    timing: {
+      pollIntervalMs: Number(parsed?.timing?.statusIntervalMs || 5000),
+      requestTimeoutMs: Number(parsed?.timing?.requestTimeoutMs || 4000),
+    },
+    urls: {
+      frontend: normalizeBaseUrl(parsed?.urls?.frontend || `http://${host}:${ports.frontend}`),
+      automation: normalizeBaseUrl(parsed?.urls?.automation || `http://${host}:${ports.automation}`),
+      monitoring: normalizeBaseUrl(parsed?.urls?.monitoring || `http://${host}:${ports.monitoring}`),
+    },
+  };
+}
+
+let config = null;
+try {
+  config = loadConfig(configPath);
+} catch (error) {
+  console.error(
+    `Failed to load config file at ${configPath}: ${error instanceof Error ? error.message : "Unknown error"}`,
+  );
+  process.exit(1);
+}
+
+const POLL_INTERVAL_MS = config.timing.pollIntervalMs;
+const REQUEST_TIMEOUT_MS = config.timing.requestTimeoutMs;
 
 function nowStamp() {
   const now = new Date();
@@ -67,7 +105,7 @@ async function fetchWithTimeout(url) {
 }
 
 async function checkFrontend(frontendUrl) {
-  const url = normalizeBaseUrl(frontendUrl) || DEFAULT_FRONTEND_URL;
+  const url = normalizeBaseUrl(frontendUrl);
 
   try {
     const result = await fetchWithTimeout(url);
@@ -90,8 +128,7 @@ async function checkFrontend(frontendUrl) {
 }
 
 async function checkAutomation(automationBaseUrl) {
-  const baseUrl = normalizeBaseUrl(automationBaseUrl) || DEFAULT_AUTOMATION_BASE_URL;
-  const url = `${baseUrl}/health`;
+  const url = `${normalizeBaseUrl(automationBaseUrl)}/health`;
 
   try {
     const result = await fetchWithTimeout(url);
@@ -115,8 +152,7 @@ async function checkAutomation(automationBaseUrl) {
 }
 
 async function checkMonitoring(monitoringBaseUrl) {
-  const baseUrl = normalizeBaseUrl(monitoringBaseUrl) || DEFAULT_MONITORING_BASE_URL;
-  const url = `${baseUrl}/health`;
+  const url = `${normalizeBaseUrl(monitoringBaseUrl)}/health`;
 
   try {
     const result = await fetchWithTimeout(url);
@@ -148,7 +184,8 @@ function renderReport(results) {
       : colorize(`${downCount} service(s) offline (${upCount}/${results.length} online)`, "31");
 
   return [
-    "ListMate Service Status",
+    `ListMate Service Status (${config.instanceName})`,
+    `Config: ${configPath}`,
     summaryText,
     `Checked: ${nowStamp()}`,
     "",
@@ -172,9 +209,9 @@ function clearScreen() {
 
 async function runCheck() {
   return Promise.all([
-    checkFrontend(DEFAULT_FRONTEND_URL),
-    checkAutomation(DEFAULT_AUTOMATION_BASE_URL),
-    checkMonitoring(DEFAULT_MONITORING_BASE_URL),
+    checkFrontend(config.urls.frontend),
+    checkAutomation(config.urls.automation),
+    checkMonitoring(config.urls.monitoring),
   ]);
 }
 

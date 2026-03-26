@@ -12,7 +12,7 @@ const EBAY_AUTH_URL = "https://auth.ebay.com/oauth2/authorize";
 const EBAY_IDENTITY_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const EBAY_API_ROOT = "https://api.ebay.com";
 const EBAY_TRADING_URL = "https://api.ebay.com/ws/api.dll";
-const EBAY_TOKENS_PATH = path.resolve(process.cwd(), "ebay-tokens.json");
+const EBAY_TOKENS_DIR = path.resolve(process.cwd(), process.env.EBAY_TOKENS_DIR || "tokens");
 const USER_SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.inventory",
   "https://api.ebay.com/oauth/api_scope/sell.account",
@@ -133,17 +133,31 @@ function normalizeCondition(condition) {
   return "USED_GOOD";
 }
 
-async function readTokenStore() {
+function sanitizeUserId(userId) {
+  const normalized = String(userId || "default").trim().toLowerCase();
+  return normalized.replace(/[^a-z0-9_-]/g, "_").slice(0, 80) || "default";
+}
+
+async function ensureTokensDir() {
+  await fs.mkdir(EBAY_TOKENS_DIR, { recursive: true });
+}
+
+function getEbayTokensPath(userId) {
+  return path.join(EBAY_TOKENS_DIR, `ebay-tokens.${sanitizeUserId(userId)}.json`);
+}
+
+async function readTokenStore(userId = "default") {
   try {
-    const raw = await fs.readFile(EBAY_TOKENS_PATH, "utf8");
+    const raw = await fs.readFile(getEbayTokensPath(userId), "utf8");
     return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-async function writeTokenStore(tokenStore) {
-  await fs.writeFile(EBAY_TOKENS_PATH, `${JSON.stringify(tokenStore, null, 2)}\n`, "utf8");
+async function writeTokenStore(tokenStore, userId = "default") {
+  await ensureTokensDir();
+  await fs.writeFile(getEbayTokensPath(userId), `${JSON.stringify(tokenStore, null, 2)}\n`, "utf8");
 }
 
 async function requestIdentityToken(params) {
@@ -167,8 +181,8 @@ async function requestIdentityToken(params) {
   return payload;
 }
 
-async function getUserAccessToken() {
-  const tokenStore = await readTokenStore();
+async function getUserAccessToken(userId = "default") {
+  const tokenStore = await readTokenStore(userId);
 
   if (!tokenStore?.refreshToken) {
     throw new Error("eBay API is not connected. Open Settings and run Connect eBay API first.");
@@ -193,7 +207,7 @@ async function getUserAccessToken() {
     updatedAt: Date.now(),
   };
 
-  await writeTokenStore(nextStore);
+  await writeTokenStore(nextStore, userId);
   return nextStore.accessToken;
 }
 
@@ -520,9 +534,10 @@ function buildOfferPayload(payload, sku, categoryId, sellerResources, marketplac
 }
 
 export async function automateEbay(payload) {
+  const userId = payload?.userId || "default";
   const config = assertConfigured();
   const marketplaceSettings = getMarketplaceSettings(config.marketplaceId);
-  const userToken = await getUserAccessToken();
+  const userToken = await getUserAccessToken(userId);
 
   logStep("ebay", "Preparing listing through the eBay APIs.");
 
@@ -586,7 +601,7 @@ export async function automateEbay(payload) {
   };
 }
 
-export async function removeEbayListing({ listingId, url }) {
+export async function removeEbayListing({ listingId, url, userId }) {
   const config = assertConfigured();
   const marketplaceSettings = getMarketplaceSettings(config.marketplaceId);
   const itemId = extractEbayListingId(url) || extractEbayListingId(listingId);
@@ -598,7 +613,7 @@ export async function removeEbayListing({ listingId, url }) {
     };
   }
 
-  const userToken = await getUserAccessToken();
+  const userToken = await getUserAccessToken(userId || "default");
   await endEbayFixedPriceItem({
     userToken,
     itemId,
@@ -612,10 +627,13 @@ export async function removeEbayListing({ listingId, url }) {
   };
 }
 
-export function getEbayConsentUrl() {
+export function getEbayConsentUrl(userId = "default") {
   const { clientId, ruName } = assertConfigured();
   const state = crypto.randomUUID();
-  PENDING_CONNECT_STATES.set(state, Date.now());
+  PENDING_CONNECT_STATES.set(state, {
+    createdAt: Date.now(),
+    userId: userId || "default",
+  });
 
   const url = new URL(EBAY_AUTH_URL);
   url.searchParams.set("client_id", clientId);
@@ -628,17 +646,17 @@ export function getEbayConsentUrl() {
   return url.toString();
 }
 
-export async function startEbayManualLogin() {
+export async function startEbayManualLogin({ userId } = {}) {
   return {
     ok: true,
-    url: getEbayConsentUrl(),
+    url: getEbayConsentUrl(userId || "default"),
     message: "Open the returned URL to connect eBay API access.",
   };
 }
 
-export async function getEbayStatus() {
+export async function getEbayStatus({ userId } = {}) {
   const config = getEbayConfig();
-  const tokenStore = await readTokenStore();
+  const tokenStore = await readTokenStore(userId || "default");
   const missing = [];
 
   if (!config.clientId) {
@@ -677,6 +695,7 @@ export async function handleEbayOAuthCallback({ code, state, error, errorDescrip
     throw new Error("Invalid or expired eBay OAuth state.");
   }
 
+  const pending = PENDING_CONNECT_STATES.get(state);
   PENDING_CONNECT_STATES.delete(state);
 
   const { ruName } = assertConfigured();
@@ -692,7 +711,7 @@ export async function handleEbayOAuthCallback({ code, state, error, errorDescrip
     refreshToken: tokenPayload.refresh_token,
     scope: tokenPayload.scope,
     updatedAt: Date.now(),
-  });
+  }, pending?.userId || "default");
 
   return {
     ok: true,

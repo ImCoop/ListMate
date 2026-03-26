@@ -252,6 +252,22 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
   return size.replace(/^Waist\s+/i, "");
 }
 
+function normalizeUrl(value: string) {
+  return value.trim();
+}
+
+function isPoshmarkListingUrl(value: string) {
+  return /https?:\/\/(www\.)?poshmark\.com\/listing\//i.test(value);
+}
+
+function isDepopProductUrl(value: string) {
+  return /https?:\/\/(www\.)?depop\.com\/products\//i.test(value);
+}
+
+function isEbayItemUrl(value: string) {
+  return /https?:\/\/(www\.)?ebay\.[a-z.]+\/(itm\/|.*[?&]item=\d+)/i.test(value);
+}
+
 const DEFAULT_GENDER: GenderName = "Women";
 const DEFAULT_CATEGORY_GROUP = getCategoryOptions(DEFAULT_GENDER)[0] || "Tops";
 const DEFAULT_SUBCATEGORY = getSubcategoryOptions(DEFAULT_GENDER, DEFAULT_CATEGORY_GROUP)[0] || "T-Shirt";
@@ -284,6 +300,19 @@ const emptyForm: FormState = {
   topCategory: DEFAULT_GENDER as PoshmarkTopCategory,
   condition: "GOOD",
 };
+
+type CreateListingRequest =
+  | {
+      mode: "new";
+      input: ListingInput;
+    }
+  | {
+      mode: "existing-links";
+      title?: string;
+      poshmarkUrl?: string;
+      depopUrl?: string;
+      ebayUrl?: string;
+    };
 
 function validateListingInput(input: ListingInput, form: FormState) {
   if (!input.title || input.title.length > 80) {
@@ -342,6 +371,18 @@ function sortListings(listings: Listing[]) {
 
 function getListingImageUrls(listing: Partial<Listing>) {
   return Array.isArray(listing.imageUrls) ? listing.imageUrls : [];
+}
+
+function belongsToSessionUser(listing: Partial<Listing>, sessionUser: SessionUser) {
+  if (typeof listing.createdByUserId === "string" && listing.createdByUserId) {
+    return listing.createdByUserId === sessionUser.id;
+  }
+
+  if (typeof listing.createdByUsername === "string" && listing.createdByUsername) {
+    return listing.createdByUsername === sessionUser.username;
+  }
+
+  return false;
 }
 
 function statusTone(status: ListingStatus) {
@@ -460,7 +501,7 @@ function NewListingSheet({
   isOpen: boolean;
   isSaving: boolean;
   onClose: () => void;
-  onSubmit: (input: ListingInput) => Promise<void>;
+  onSubmit: (request: CreateListingRequest) => Promise<void>;
 }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
@@ -562,7 +603,10 @@ function NewListingSheet({
     }
 
     setFormError(null);
-    await onSubmit(input);
+    await onSubmit({
+      mode: "new",
+      input,
+    });
   }
 
   async function generateDescriptionFromPhotos() {
@@ -909,6 +953,143 @@ function NewListingSheet({
   );
 }
 
+function ExistingLinksSheet({
+  isOpen,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (request: CreateListingRequest) => Promise<void>;
+}) {
+  const [title, setTitle] = useState("");
+  const [poshmarkUrl, setPoshmarkUrl] = useState("");
+  const [depopUrl, setDepopUrl] = useState("");
+  const [ebayUrl, setEbayUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setTitle("");
+      setPoshmarkUrl("");
+      setDepopUrl("");
+      setEbayUrl("");
+      setError(null);
+    }
+  }, [isOpen]);
+
+  async function handleSave() {
+    const nextPoshmarkUrl = normalizeUrl(poshmarkUrl);
+    const nextDepopUrl = normalizeUrl(depopUrl);
+    const nextEbayUrl = normalizeUrl(ebayUrl);
+
+    if (!nextPoshmarkUrl && !nextDepopUrl && !nextEbayUrl) {
+      setError("Add at least one marketplace URL.");
+      return;
+    }
+
+    if (nextPoshmarkUrl && !isPoshmarkListingUrl(nextPoshmarkUrl)) {
+      setError("Poshmark URL must be a listing link (https://poshmark.com/listing/...).");
+      return;
+    }
+
+    if (nextDepopUrl && !isDepopProductUrl(nextDepopUrl)) {
+      setError("Depop URL must be a product link (https://www.depop.com/products/...).");
+      return;
+    }
+
+    if (nextEbayUrl && !isEbayItemUrl(nextEbayUrl)) {
+      setError("eBay URL must be an item link.");
+      return;
+    }
+
+    setError(null);
+    await onSubmit({
+      mode: "existing-links",
+      title: title.trim() || undefined,
+      poshmarkUrl: nextPoshmarkUrl || undefined,
+      depopUrl: nextDepopUrl || undefined,
+      ebayUrl: nextEbayUrl || undefined,
+    });
+  }
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-30 bg-ink/30 backdrop-blur-sm">
+      <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-[2rem] bg-[#fffaf3] px-4 pb-8 pt-4">
+        <div className="mx-auto h-1.5 w-16 rounded-full bg-ink/15" />
+        <div className="mt-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-clay">Existing Listings</p>
+            <h2 className="mt-2 text-2xl font-semibold text-ink">Monitor posted links.</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-ink/10 px-3 py-2 text-sm font-medium text-ink"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <Field label="Optional Label">
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-base text-ink outline-none transition focus:border-clay"
+              placeholder="Vintage jacket bundle"
+            />
+          </Field>
+
+          <Field label="Poshmark Listing URL">
+            <input
+              value={poshmarkUrl}
+              onChange={(event) => setPoshmarkUrl(event.target.value)}
+              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-sm text-ink outline-none transition focus:border-clay"
+              placeholder="https://poshmark.com/listing/..."
+            />
+          </Field>
+
+          <Field label="Depop Product URL">
+            <input
+              value={depopUrl}
+              onChange={(event) => setDepopUrl(event.target.value)}
+              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-sm text-ink outline-none transition focus:border-clay"
+              placeholder="https://www.depop.com/products/..."
+            />
+          </Field>
+
+          <Field label="eBay Item URL">
+            <input
+              value={ebayUrl}
+              onChange={(event) => setEbayUrl(event.target.value)}
+              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-4 text-sm text-ink outline-none transition focus:border-clay"
+              placeholder="https://www.ebay.com/itm/..."
+            />
+          </Field>
+
+          {error ? <p className="text-sm text-rose">{error}</p> : null}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full rounded-[1.4rem] bg-ink px-5 py-4 text-base font-semibold text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:bg-ink/40"
+          >
+            {isSaving ? "Saving..." : "Save Existing Links"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -1097,8 +1278,9 @@ function ListingCard({
   );
 }
 
-function ConnectedDashboard() {
+function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isExistingLinksSheetOpen, setIsExistingLinksSheetOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [sendingMap, setSendingMap] = useState<Record<string, AutomationPlatform | null>>({});
@@ -1107,7 +1289,9 @@ function ConnectedDashboard() {
   const [showSoldListings, setShowSoldListings] = useState(false);
 
   const { isLoading, error, data } = db!.useQuery({ listings: {} });
-  const listings = sortListings((data?.listings as Listing[] | undefined) ?? []);
+  const listings = sortListings(
+    ((data?.listings as Listing[] | undefined) ?? []).filter((listing) => belongsToSessionUser(listing, sessionUser)),
+  );
   const visibleListings = listings.filter((listing) => showSoldListings || listing.status !== "sold");
 
   useEffect(() => {
@@ -1123,29 +1307,56 @@ function ConnectedDashboard() {
     setAutomationBaseUrl(readAutomationBaseUrl());
   }, []);
 
-  async function handleCreateListing(input: ListingInput) {
+  async function handleCreateListing(request: CreateListingRequest) {
     setIsSaving(true);
 
     try {
       const listingId = createId();
-      const listing: Listing = {
-        id: listingId,
-        ...input,
-        status: "draft",
-        createdAt: Date.now(),
-      };
+      const createdAt = Date.now();
+      const listing: Listing =
+        request.mode === "new"
+          ? {
+              id: listingId,
+              ...request.input,
+              status: "draft",
+              createdByUserId: sessionUser.id,
+              createdByUsername: sessionUser.username,
+              createdAt,
+            }
+          : {
+              id: listingId,
+              title: request.title || "Imported listing",
+              description: "Imported existing marketplace listing for monitoring/removal.",
+              price: 0,
+              quantity: 1,
+              imageUrls: [],
+              status: "listed",
+              poshmarkUrl: request.poshmarkUrl,
+              depopUrl: request.depopUrl,
+              ebayUrl: request.ebayUrl,
+              poshmarkState: request.poshmarkUrl ? "active" : undefined,
+              depopState: request.depopUrl ? "active" : undefined,
+              ebayState: request.ebayUrl ? "active" : undefined,
+              createdByUserId: sessionUser.id,
+              createdByUsername: sessionUser.username,
+              createdAt,
+            };
 
       await db!.transact(
         db!.tx.listings[listingId].update(listing),
       );
       setIsSheetOpen(false);
-      setToast("Listing saved. Sending to Poshmark, Depop, and eBay.");
-
-      void Promise.allSettled([
-        sendToAutomation(listing, "poshmark"),
-        sendToAutomation(listing, "depop"),
-        sendToAutomation(listing, "ebay"),
-      ]);
+      setIsExistingLinksSheetOpen(false);
+      if (request.mode === "new") {
+        setToast("Listing saved. Sending to Poshmark, Depop, and eBay.");
+        void Promise.allSettled([
+          sendToAutomation(listing, "poshmark"),
+          sendToAutomation(listing, "depop"),
+          sendToAutomation(listing, "ebay"),
+        ]);
+      } else {
+        setToast("Existing listing links saved for monitoring.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -1165,8 +1376,10 @@ function ConnectedDashboard() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-listmate-user-id": sessionUser.id,
         },
         body: JSON.stringify({
+          userId: sessionUser.id,
           listingId: listing.id,
           title: listing.title,
           description: listing.description,
@@ -1279,13 +1492,22 @@ function ConnectedDashboard() {
           ))}
       </div>
 
-      <button
-        type="button"
-        onClick={() => setIsSheetOpen(true)}
-        className="fixed bottom-20 left-1/2 z-20 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-[1.4rem] bg-ink px-5 py-4 text-base font-semibold text-white shadow-2xl shadow-ink/20"
-      >
-        New Listing
-      </button>
+      <div className="fixed bottom-20 left-1/2 z-20 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setIsSheetOpen(true)}
+          className="rounded-[1.4rem] bg-ink px-4 py-4 text-sm font-semibold text-white shadow-2xl shadow-ink/20"
+        >
+          New Listing
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsExistingLinksSheetOpen(true)}
+          className="rounded-[1.4rem] border border-ink/10 bg-white px-4 py-4 text-sm font-semibold text-ink shadow-2xl shadow-ink/10"
+        >
+          Existing Links
+        </button>
+      </div>
 
       <label
         htmlFor="show-sold-listings"
@@ -1305,6 +1527,13 @@ function ConnectedDashboard() {
         isOpen={isSheetOpen}
         isSaving={isSaving}
         onClose={() => setIsSheetOpen(false)}
+        onSubmit={handleCreateListing}
+      />
+
+      <ExistingLinksSheet
+        isOpen={isExistingLinksSheetOpen}
+        isSaving={isSaving}
+        onClose={() => setIsExistingLinksSheetOpen(false)}
         onSubmit={handleCreateListing}
       />
 
@@ -1349,7 +1578,7 @@ export function ListMateApp({ sessionUser }: { sessionUser: SessionUser }) {
       </section>
 
       <section className="mt-5">
-        {hasInstantConfig ? <ConnectedDashboard /> : <SetupEmptyState />}
+        {hasInstantConfig ? <ConnectedDashboard sessionUser={sessionUser} /> : <SetupEmptyState />}
       </section>
     </main>
   );

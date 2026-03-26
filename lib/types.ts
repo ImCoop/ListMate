@@ -23,6 +23,8 @@ export interface Listing {
   poshmarkState?: MarketplaceListingState;
   depopState?: MarketplaceListingState;
   ebayState?: MarketplaceListingState;
+  createdByUserId?: string;
+  createdByUsername?: string;
   createdAt: number;
 }
 

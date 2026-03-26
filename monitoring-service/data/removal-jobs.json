@@ -58,5 +58,35 @@
     "targetPlatform": "depop",
     "url": "https://www.depop.com/products/imc2op-pants-guess-theyre-great-b90d/manage/",
     "maxAttempts": 5
+  },
+  {
+    "id": "29f48aab-2b86-4f7b-8a4d-9b71c751fd58",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774465090702,
+    "updatedAt": 1774465115717,
+    "lastAttemptAt": 1774465092965,
+    "nextAttemptAt": 1774465090702,
+    "error": null,
+    "listingId": "f885b7fd-dfb6-4079-bd70-57816e17f926",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/imcoo5-pants-theyr-ecool-d11f/manage/",
+    "maxAttempts": 5
+  },
+  {
+    "id": "c48d3749-ca38-4e7a-baf7-5878d2200743",
+    "status": "succeeded",
+    "attempts": 1,
+    "createdAt": 1774474926036,
+    "updatedAt": 1774474941034,
+    "lastAttemptAt": 1774474928542,
+    "nextAttemptAt": 1774474926036,
+    "error": null,
+    "listingId": "fdc0e8b6-654f-48b4-8560-faa94b635abe",
+    "soldOnPlatform": "poshmark",
+    "targetPlatform": "depop",
+    "url": "https://www.depop.com/products/imcoos-pants-they-re-cool-0c05/manage/",
+    "maxAttempts": 5
   }
 ]
