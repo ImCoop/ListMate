@@ -398,6 +398,10 @@ function statusTone(status: ListingStatus) {
 }
 
 function marketplaceStateTone(state: MarketplaceListingState | undefined) {
+  if (state === "failed") {
+    return "bg-rose/15 text-rose";
+  }
+
   if (state === "sold") {
     return "bg-rose/15 text-rose";
   }
@@ -411,6 +415,14 @@ function marketplaceStateTone(state: MarketplaceListingState | undefined) {
   }
 
   return "bg-pine/15 text-pine";
+}
+
+function formatMarketplaceState(state: MarketplaceListingState) {
+  if (state === "remove_pending") {
+    return "Remove Pending";
+  }
+
+  return state.charAt(0).toUpperCase() + state.slice(1);
 }
 
 function SetupEmptyState() {
@@ -1144,12 +1156,14 @@ function ListingCard({
   sendingPlatform,
   onUpdateStatus,
   onDelete,
+  onRetryPlatform,
   isDeleting,
 }: {
   listing: Listing;
   sendingPlatform: AutomationPlatform | null;
   onUpdateStatus: (listingId: string, status: ListingStatus) => Promise<void>;
   onDelete: (listingId: string) => Promise<void>;
+  onRetryPlatform: (listing: Listing, platform: AutomationPlatform) => Promise<void>;
   isDeleting: boolean;
 }) {
   const listingIdLabel = listing.id.slice(0, 8).toUpperCase();
@@ -1206,13 +1220,32 @@ function ListingCard({
         </div>
       )}
 
-      {(listing.poshmarkUrl || listing.depopUrl || listing.ebayUrl) && (
+      {(listing.poshmarkUrl ||
+        listing.depopUrl ||
+        listing.ebayUrl ||
+        listing.poshmarkState ||
+        listing.depopState ||
+        listing.ebayState) && (
         <div className="mt-4 rounded-[1rem] border border-ink/10 bg-sand/50 p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/55">Marketplace Links</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {(["poshmark", "depop", "ebay"] as const).map((platform) => {
               const url = listing[PLATFORM_URL_KEY[platform]];
               const state = listing[PLATFORM_STATE_KEY[platform]];
+
+              if (state === "failed") {
+                return (
+                  <button
+                    key={`${listing.id}-${platform}-retry`}
+                    type="button"
+                    onClick={() => void onRetryPlatform(listing, platform)}
+                    disabled={Boolean(sendingPlatform)}
+                    className="rounded-full border border-rose/30 bg-rose/10 px-3 py-1.5 text-xs font-semibold text-rose disabled:cursor-not-allowed disabled:text-rose/40"
+                  >
+                    Retry {PLATFORM_LABEL[platform]}
+                  </button>
+                );
+              }
 
               if (!url) {
                 return null;
@@ -1227,7 +1260,6 @@ function ListingCard({
                   className="rounded-full border border-ink/10 bg-white px-3 py-1.5 text-xs font-semibold text-ink"
                 >
                   {PLATFORM_LABEL[platform]}
-                  {state ? ` (${state.replace("_", " ")})` : ""}
                 </a>
               );
             })}
@@ -1248,7 +1280,7 @@ function ListingCard({
                     marketplaceStateTone(state),
                   )}
                 >
-                  {PLATFORM_LABEL[platform]}: {state.replace("_", " ")}
+                  {PLATFORM_LABEL[platform]}: {formatMarketplaceState(state)}
                 </span>
               );
             })}
@@ -1452,6 +1484,18 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           : error instanceof Error
             ? error.message
             : "Automation request failed";
+
+      const stateKey = PLATFORM_STATE_KEY[platform];
+      try {
+        await db!.transact(
+          db!.tx.listings[listing.id].update({
+            [stateKey]: "failed",
+          }),
+        );
+      } catch {
+        // Keep primary automation error surfaced even if state sync fails.
+      }
+
       setToast(message);
     } finally {
       setSendingMap((current) => ({
@@ -1529,6 +1573,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
               }
               onUpdateStatus={updateStatus}
               onDelete={deleteListing}
+              onRetryPlatform={sendToAutomation}
               isDeleting={deletingId === listing.id}
             />
           ))}

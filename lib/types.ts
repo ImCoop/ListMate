@@ -1,7 +1,7 @@
 export type ListingStatus = "draft" | "listed" | "sold";
 export type PoshmarkTopCategory = "Women" | "Men" | "Kids" | "Home" | "Pets" | "Electronics";
 export type MarketplacePlatform = "poshmark" | "depop" | "ebay";
-export type MarketplaceListingState = "active" | "sold" | "remove_pending" | "removed";
+export type MarketplaceListingState = "active" | "sold" | "remove_pending" | "removed" | "failed";
 
 export interface Listing {
   id: string;

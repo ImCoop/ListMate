@@ -71,21 +71,11 @@
       "sameSite": "Lax"
     },
     {
-      "name": "_dd_s",
-      "value": "rum=0&expire=1774494429782",
-      "domain": "poshmark.com",
-      "path": "/",
-      "expires": 1774494429,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
       "name": "G_ENABLED_IDPS",
       "value": "google",
       "domain": ".poshmark.com",
       "path": "/",
-      "expires": 1809053529.96969,
+      "expires": 1809106922.196022,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -95,7 +85,7 @@
       "value": "BruNzkjB4C1i6JOCVGUudj94EPE6ZBCLpGwxK2lsEy8=",
       "domain": "poshmark.com",
       "path": "/",
-      "expires": 1806029530.311987,
+      "expires": 1806082922.875613,
       "httpOnly": true,
       "secure": true,
       "sameSite": "None",
@@ -107,12 +97,22 @@
       "value": "kXeL7WtX4SRlXjm1MAe6kE79TZoHlownPuu7QwsJk6Q=",
       "domain": "mpsnare.iesnare.com",
       "path": "/",
-      "expires": 1806029530.374401,
+      "expires": 1806082922.61386,
       "httpOnly": true,
       "secure": true,
       "sameSite": "None",
       "partitionKey": "https://poshmark.com",
       "_crHasCrossSiteAncestor": true
+    },
+    {
+      "name": "_dd_s",
+      "value": "rum=0&expire=1774547822065",
+      "domain": "poshmark.com",
+      "path": "/",
+      "expires": 1774547822,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
     }
   ],
   "origins": [
