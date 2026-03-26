@@ -255,7 +255,6 @@ function mapSizeForPlatform(size: string | undefined, platform: MarketplacePlatf
 function mapCategoryForPlatform(
   category: string | undefined,
   platform: MarketplacePlatform,
-  topCategory: string | undefined,
 ) {
   if (!category) {
     return category;
@@ -264,10 +263,10 @@ function mapCategoryForPlatform(
   const trimmed = category.trim();
 
   if (platform === "poshmark" && /^shirt$/i.test(trimmed)) {
-    if (/^men$/i.test(String(topCategory || "").trim())) {
-      return "Men Shirts";
-    }
+    return "Shirts";
+  }
 
+  if (platform === "poshmark" && /^men shirts$/i.test(trimmed)) {
     return "Shirts";
   }
 
@@ -1462,7 +1461,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           quantity: listing.quantity,
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
-          category: mapCategoryForPlatform(listing.category, platform, listing.topCategory),
+          category: mapCategoryForPlatform(listing.category, platform),
           topCategory: listing.topCategory,
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,
