@@ -351,6 +351,18 @@ function mapCategoryForPlatform(category: string | undefined, platform: Marketpl
   return normalized;
 }
 
+function mapTopCategoryForPlatform(
+  topCategory: PoshmarkTopCategory | undefined,
+  category: string | undefined,
+  platform: MarketplacePlatform,
+) {
+  if (platform === "poshmark" && /^men'?s shirts?$/i.test(String(category || "").trim())) {
+    return "Men" as PoshmarkTopCategory;
+  }
+
+  return topCategory;
+}
+
 function normalizeUrl(value: string) {
   return value.trim();
 }
@@ -1540,7 +1552,7 @@ function ConnectedDashboard({ sessionUser }: { sessionUser: SessionUser }) {
           brand: listing.brand,
           size: mapSizeForPlatform(listing.size, platform),
           category: mapCategoryForPlatform(listing.category, platform),
-          topCategory: listing.topCategory,
+          topCategory: mapTopCategoryForPlatform(listing.topCategory, listing.category, platform),
           condition: mapConditionForPlatform(listing.condition, platform),
           imageUrls,
         }),
