@@ -10,6 +10,7 @@
     "install:browser": "playwright install chromium",
     "convert:poshmark:txt-json": "node scripts/convert-poshmark-txt-to-json.js",
     "scrape:poshmark:categories": "node scripts/scrape-poshmark-categories.js",
+    "scrape:poshmark:taxonomy": "node scripts/scrape-poshmark-taxonomy.js",
     "scrape:depop:categories": "node scripts/scrape-depop-categories.js"
   },
   "dependencies": {

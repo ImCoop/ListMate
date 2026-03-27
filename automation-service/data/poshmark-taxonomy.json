@@ -1,0 +1,275 @@
+{
+  "capturedAt": "2026-03-27T01:29:19.677Z",
+  "source": "https://poshmark.com/sell",
+  "notes": [
+    "Captured from the live authenticated Poshmark sell flow.",
+    "Public support pages do not expose the full category and size matrix."
+  ],
+  "topCategories": [
+    {
+      "name": "Women",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Bags",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Dresses",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Intimates & Sleepwear",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Jackets & Coats",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Jeans",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Jewelry",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Makeup",
+          "sizes": [],
+          "hasCustomSize": true
+        }
+      ]
+    },
+    {
+      "name": "Men",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Bags",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Jackets & Coats",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Jeans",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Pants",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Shirts",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Shoes",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Shorts",
+          "sizes": [],
+          "hasCustomSize": true
+        }
+      ]
+    },
+    {
+      "name": "Kids",
+      "subcategories": [
+        {
+          "name": "Accessories",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Bottoms",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Dresses",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Jackets & Coats",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Matching Sets",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "One Pieces",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Pajamas",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Shirts & Tops",
+          "sizes": [],
+          "hasCustomSize": true
+        }
+      ]
+    },
+    {
+      "name": "Home",
+      "subcategories": [
+        {
+          "name": "Accents",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Art",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Bath",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Bedding",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Design",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Dining",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Games",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Holiday",
+          "sizes": [],
+          "hasCustomSize": true
+        }
+      ]
+    },
+    {
+      "name": "Pets",
+      "subcategories": [
+        {
+          "name": "Dog",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Cat",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Bird",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Fish",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Reptile",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Small Pets",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Other",
+          "sizes": [],
+          "hasCustomSize": true
+        }
+      ]
+    },
+    {
+      "name": "Electronics",
+      "subcategories": [
+        {
+          "name": "Cameras, Photo & Video",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Computers, Laptops & Parts",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Cell Phones & Accessories",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Car Audio, Video & GPS",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Wearables",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Tablets & Accessories",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "Video Games & Consoles",
+          "sizes": [],
+          "hasCustomSize": true
+        },
+        {
+          "name": "VR, AR & Accessories",
+          "sizes": [],
+          "hasCustomSize": true
+        }
+      ]
+    }
+  ]
+}

@@ -28,7 +28,28 @@ type PoshmarkCategoryMap = {
   }>;
 };
 
-const POSHMARK_CATEGORY_TREE = (poshmarkCategoryMap as PoshmarkCategoryMap).categories;
+const POSHMARK_CATEGORY_TREE = (poshmarkCategoryMap as PoshmarkCategoryMap).categories.map((entry) => {
+  if (entry.topCategory !== "Women") {
+    return entry;
+  }
+
+  const hasShirts = entry.subcategories.some((subcategory) => subcategory.subcategory === "Shirts");
+
+  if (hasShirts) {
+    return entry;
+  }
+
+  return {
+    ...entry,
+    subcategories: [
+      ...entry.subcategories,
+      {
+        subcategory: "Shirts",
+        index: -1,
+      },
+    ],
+  };
+});
 const APPAREL_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"] as const;
 const BOTTOM_SIZES = [
   "XXS",
@@ -58,6 +79,7 @@ const DEPOP_CATEGORY_BY_POSHMARK: Record<string, string> = {
   "Women::Jeans": "Jeans",
   "Women::Jewelry": "Jewellery",
   "Women::Makeup": "Other",
+  "Women::Shirts": "Shirts",
   "Men::Accessories": "Other",
   "Men::Bags": "Bags",
   "Men::Jackets & Coats": "Jackets",
@@ -487,6 +509,28 @@ async function fileToDataUrl(file: File) {
   }
 }
 
+function moveImage(imageUrls: string[], fromIndex: number, toIndex: number) {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= imageUrls.length ||
+    toIndex >= imageUrls.length
+  ) {
+    return imageUrls;
+  }
+
+  const nextImages = [...imageUrls];
+  const [movedImage] = nextImages.splice(fromIndex, 1);
+
+  if (!movedImage) {
+    return imageUrls;
+  }
+
+  nextImages.splice(toIndex, 0, movedImage);
+  return nextImages;
+}
+
 function NewListingSheet({
   isOpen,
   isSaving,
@@ -502,6 +546,8 @@ function NewListingSheet({
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const enableAiDescriptionUi = false;
   const topCategoryOptions = getTopCategoryOptions();
   const subcategoryOptions = getSubcategoryOptions(form.topCategory);
@@ -513,8 +559,25 @@ function NewListingSheet({
       setIsProcessingImages(false);
       setIsGeneratingDescription(false);
       setFormError(null);
+      setDraggedImageIndex(null);
+      setPreviewImageUrl(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!previewImageUrl) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setPreviewImageUrl(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewImageUrl]);
 
   useEffect(() => {
     setForm((current) => {
@@ -560,6 +623,18 @@ function NewListingSheet({
     const files = Array.from(event.target.files ?? []);
     await handleSelectedFiles(files);
     event.target.value = "";
+  }
+
+  function handleImageDrop(targetIndex: number) {
+    if (draggedImageIndex === null) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      imageUrls: moveImage(current.imageUrls, draggedImageIndex, targetIndex),
+    }));
+    setDraggedImageIndex(null);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -742,20 +817,43 @@ function NewListingSheet({
                 Up to 6 images total. You can choose multiple existing files or capture new photos. Photos are resized
                 before save for faster mobile use.
               </p>
+              <p className="mt-2 text-xs leading-5 text-ink/55">Drag thumbnails to reorder them. Tap a photo to inspect it.</p>
               {isProcessingImages ? <p className="mt-2 text-xs font-semibold text-ink/70">Processing photos...</p> : null}
 
               {form.imageUrls.length > 0 ? (
                 <div className="scrollbar-none mt-4 flex gap-3 overflow-x-auto pb-1">
                   {form.imageUrls.map((imageUrl, index) => (
-                    <div key={`${imageUrl.slice(0, 24)}-${index}`} className="relative shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imageUrl}
-                        alt={`Selected photo ${index + 1}`}
-                        className="h-24 w-24 rounded-[1.1rem] object-cover"
-                      />
+                    <div
+                      key={`${imageUrl.slice(0, 24)}-${index}`}
+                      draggable
+                      onDragStart={() => setDraggedImageIndex(index)}
+                      onDragEnd={() => setDraggedImageIndex(null)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => handleImageDrop(index)}
+                      className={clsx(
+                        "relative shrink-0 transition",
+                        draggedImageIndex === index ? "scale-[0.98] opacity-60" : "opacity-100",
+                      )}
+                    >
                       <button
                         type="button"
+                        onClick={() => setPreviewImageUrl(imageUrl)}
+                        className="block overflow-hidden rounded-[1.1rem] focus:outline-none focus:ring-2 focus:ring-clay"
+                        aria-label={`Preview selected photo ${index + 1}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imageUrl}
+                          alt={`Selected photo ${index + 1}`}
+                          className="h-24 w-24 rounded-[1.1rem] object-cover"
+                        />
+                      </button>
+                      <div className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink shadow-sm">
+                        {index + 1}
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Remove selected photo ${index + 1}`}
                         onClick={() =>
                           setForm((current) => ({
                             ...current,
@@ -893,6 +991,32 @@ function NewListingSheet({
           </button>
         </form>
       </div>
+
+      {previewImageUrl ? (
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center bg-ink/75 px-4 py-6"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <div
+            className="relative w-full max-w-3xl rounded-[1.75rem] bg-[#fffaf3] p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImageUrl(null)}
+              className="absolute right-3 top-3 z-10 rounded-full bg-ink px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white"
+            >
+              Close
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewImageUrl}
+              alt="Selected listing photo preview"
+              className="max-h-[80vh] w-full rounded-[1.25rem] object-contain"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
